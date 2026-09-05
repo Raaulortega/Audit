@@ -45,7 +45,12 @@ function analyzeSingleFile(file: AnalyzedFile): FileAnalysis {
   }
 
   try {
-    return { file, findings: analyzer(file.content), parseError: null };
+    const findings = analyzer(file.content).map((f) => ({
+      ...f,
+      id: `${file.id}:${f.id}`,
+      sourceFile: file.filename,
+    }));
+    return { file, findings, parseError: null };
   } catch {
     return { file, findings: [], parseError: 'Failed to parse file content.' };
   }
@@ -54,7 +59,7 @@ function analyzeSingleFile(file: AnalyzedFile): FileAnalysis {
 export function useAnalysis(): UseAnalysisReturn {
   const [files, setFiles] = useState<AnalyzedFile[]>([]);
   const [result, setResult] = useState<AnalysisResult>(loadStoredResult);
-  const isFirstRender = useRef(true);
+  const hasAnalyzed = useRef(false);
 
   const addFile = useCallback((filename: string, content: string) => {
     const fileType = detectFileType(filename, content);
@@ -68,14 +73,13 @@ export function useAnalysis(): UseAnalysisReturn {
   const fileAnalyses = useMemo<FileAnalysis[]>(() => files.map(analyzeSingleFile), [files]);
 
   useEffect(() => {
-    // On the very first render with no files loaded, keep showing the result
-    // restored from localStorage instead of resetting it to the empty state.
-    // Every subsequent change to `files` (including removing the last one)
-    // recomputes live, since only the AnalysisResult - not the files - persists.
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      if (files.length === 0) return;
-    }
+    // Keep showing the result restored from localStorage until analysis has
+    // actually happened at least once (i.e. a file has been loaded). Once
+    // `hasAnalyzed.current` flips to true, every subsequent change to `files`
+    // (including removing the last one) recomputes live, since only the
+    // AnalysisResult - not the files - persists.
+    if (!hasAnalyzed.current && files.length === 0) return;
+    hasAnalyzed.current = true;
 
     const allFindings = fileAnalyses.flatMap((entry) => entry.findings);
     const nextResult = buildAnalysisResult(allFindings);
@@ -86,7 +90,7 @@ export function useAnalysis(): UseAnalysisReturn {
     } catch {
       // localStorage unavailable (e.g. private browsing) - persistence is best-effort
     }
-  }, [fileAnalyses, files.length]);
+  }, [fileAnalyses]);
 
   return { fileAnalyses, result, addFile, removeFile };
 }
