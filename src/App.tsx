@@ -3,6 +3,7 @@ import { FileDropzone } from './components/FileDropzone';
 import { FileCard } from './components/FileCard';
 import { ScoreGauge } from './components/ScoreGauge';
 import { SeverityBreakdown } from './components/SeverityBreakdown';
+import { FindingsList } from './components/FindingsList';
 import { useAnalysis } from './hooks/useAnalysis';
 
 export function App() {
@@ -44,6 +45,8 @@ export function App() {
           </div>
           <SeverityBreakdown counts={result.counts} />
         </div>
+
+        <FindingsList findings={result.findings} />
       </div>
     </div>
   );
