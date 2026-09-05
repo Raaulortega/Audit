@@ -1,10 +1,12 @@
 import { ShieldCheck } from 'lucide-react';
 import { FileDropzone } from './components/FileDropzone';
 import { FileCard } from './components/FileCard';
+import { ScoreGauge } from './components/ScoreGauge';
+import { SeverityBreakdown } from './components/SeverityBreakdown';
 import { useAnalysis } from './hooks/useAnalysis';
 
 export function App() {
-  const { fileAnalyses, addFile, removeFile } = useAnalysis();
+  const { fileAnalyses, result, addFile, removeFile } = useAnalysis();
 
   return (
     <div className="min-h-screen bg-slate-950 px-6 py-10 text-slate-100">
@@ -35,6 +37,13 @@ export function App() {
             ))}
           </div>
         )}
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[auto,1fr]">
+          <div className="flex justify-center md:justify-start">
+            <ScoreGauge score={result.score} />
+          </div>
+          <SeverityBreakdown counts={result.counts} />
+        </div>
       </div>
     </div>
   );
