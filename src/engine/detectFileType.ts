@@ -20,11 +20,18 @@ function detectFileTypeFromContent(content: string): FileType {
 
   if (/^FROM\s+\S+/m.test(trimmed)) return 'dockerfile';
 
-  if (/node_modules|\.env|\.DS_Store/.test(trimmed) && !trimmed.includes('{')) {
-    return 'gitignore';
-  }
+  if (looksLikeGitignore(trimmed)) return 'gitignore';
 
   return 'unknown';
+}
+
+function looksLikeGitignore(trimmed: string): boolean {
+  if (trimmed.length === 0) return false;
+  const lines = trimmed
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  return lines.every((line) => /^[#!]|^[\w*./_-]+\/?$/.test(line));
 }
 
 function detectJsonFileType(trimmed: string): FileType {

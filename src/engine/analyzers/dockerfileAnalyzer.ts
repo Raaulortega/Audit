@@ -8,7 +8,13 @@ export function analyzeDockerfile(content: string): Finding[] {
 
   const findings: Finding[] = [];
 
-  const hasNonRootUser = lines.some((line) => /^USER\s+(?!root\b)\S+/i.test(line));
+  const lastFromIndex = lines.reduce(
+    (lastIndex, line, index) => (/^FROM\s+/i.test(line) ? index : lastIndex),
+    -1,
+  );
+  const linesAfterLastFrom = lastFromIndex === -1 ? lines : lines.slice(lastFromIndex);
+
+  const hasNonRootUser = linesAfterLastFrom.some((line) => /^USER\s+(?!root\b)\S+/i.test(line));
   if (!hasNonRootUser) {
     findings.push({
       id: 'docker-root-user',
@@ -22,21 +28,25 @@ USER appuser`,
     });
   }
 
-  const fromLine = lines.find((line) => /^FROM\s+/i.test(line));
-  if (fromLine) {
-    const imageRef = fromLine.replace(/^FROM\s+/i, '').split(/\s+/)[0];
-    const [image, tag] = imageRef.split(':');
-    if (!tag || tag === 'latest') {
-      findings.push({
-        id: 'docker-latest-tag',
-        severity: 'medium',
-        category: 'Unpinned Base Image',
-        title: `Base image "${image}" is unpinned or uses :latest`,
-        description: 'Unpinned tags make builds non-reproducible and can silently pull in breaking or vulnerable updates.',
-        fixSnippet: `FROM ${image}:20.11.1-alpine`,
-        sourceFile: 'Dockerfile',
-      });
-    }
+  const fromLines = lines.filter((line) => /^FROM\s+/i.test(line));
+  const unpinnedImage = fromLines
+    .map((line) => line.replace(/^FROM\s+/i, '').split(/\s+/)[0])
+    .find((imageRef) => {
+      const [, tag] = imageRef.split(':');
+      return !tag || tag === 'latest';
+    });
+
+  if (unpinnedImage) {
+    const [image] = unpinnedImage.split(':');
+    findings.push({
+      id: 'docker-latest-tag',
+      severity: 'medium',
+      category: 'Unpinned Base Image',
+      title: `Base image "${image}" is unpinned or uses :latest`,
+      description: 'Unpinned tags make builds non-reproducible and can silently pull in breaking or vulnerable updates.',
+      fixSnippet: `FROM ${image}:<pinned-version>  # replace with a specific released tag`,
+      sourceFile: 'Dockerfile',
+    });
   }
 
   return findings;
