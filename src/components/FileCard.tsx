@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { FileCode2, FileJson, FileWarning, X } from 'lucide-react';
 import type { FileType } from '../engine/types';
 
@@ -21,7 +22,17 @@ export function FileCard({ filename, fileType, parseError, findingCount, onRemov
   const Icon = fileType === 'dockerfile' ? FileCode2 : fileType === 'unknown' ? FileWarning : FileJson;
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-900/60 px-4 py-3">
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -12, height: 0 }}
+      animate={{ opacity: 1, x: 0, height: 'auto' }}
+      exit={{ opacity: 0, x: 12, height: 0, marginBottom: 0 }}
+      whileHover={{ x: 2 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+      className={`flex items-center justify-between rounded-lg border bg-white/[0.03] px-4 py-3 backdrop-blur-sm ${
+        parseError ? 'border-red-500/40' : 'border-white/10'
+      }`}
+    >
       <div className="flex items-center gap-3">
         <Icon className="h-5 w-5 text-slate-400" />
         <div>
@@ -36,15 +47,17 @@ export function FileCard({ filename, fileType, parseError, findingCount, onRemov
             {findingCount} finding{findingCount === 1 ? '' : 's'}
           </span>
         )}
-        <button
+        <motion.button
           type="button"
           onClick={onRemove}
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.9 }}
           className="text-slate-500 hover:text-red-400"
           aria-label={`Remove ${filename}`}
         >
           <X className="h-4 w-4" />
-        </button>
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 }
