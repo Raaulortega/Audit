@@ -4,9 +4,10 @@ import { Check, Copy } from 'lucide-react';
 
 interface CodeSnippetProps {
   code: string;
+  copyLabel?: string;
 }
 
-export function CodeSnippet({ code }: CodeSnippetProps) {
+export function CodeSnippet({ code, copyLabel = 'Copy patch' }: CodeSnippetProps) {
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -32,7 +33,7 @@ export function CodeSnippet({ code }: CodeSnippetProps) {
             ? 'bg-emerald-400/15 text-emerald-300'
             : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-emerald-300'
         }`}
-        aria-label="Copy fix snippet"
+        aria-label={copyLabel}
       >
         <AnimatePresence mode="wait" initial={false}>
           {copied ? (
@@ -45,7 +46,7 @@ export function CodeSnippet({ code }: CodeSnippetProps) {
               className="flex items-center gap-1.5"
             >
               <Check className="h-3.5 w-3.5" />
-              ¡Copiado!
+              Copied!
             </motion.span>
           ) : (
             <motion.span
@@ -57,7 +58,7 @@ export function CodeSnippet({ code }: CodeSnippetProps) {
               className="flex items-center gap-1.5"
             >
               <Copy className="h-3.5 w-3.5" />
-              Copy patch
+              {copyLabel}
             </motion.span>
           )}
         </AnimatePresence>

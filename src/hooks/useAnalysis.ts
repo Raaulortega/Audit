@@ -3,6 +3,7 @@ import type { AnalysisResult, AnalyzedFile, Finding } from '../engine/types';
 import { detectFileType } from '../engine/detectFileType';
 import { analyzerRegistry } from '../engine/analyzers';
 import { buildAnalysisResult } from '../engine/scoring';
+import { scanSecrets } from '../engine/secretScanner';
 
 const STORAGE_KEY = 'config-audit:last-result';
 const EMPTY_RESULT: AnalysisResult = { score: 100, findings: [], counts: { critical: 0, medium: 0, low: 0 } };
@@ -18,6 +19,7 @@ interface UseAnalysisReturn {
   result: AnalysisResult;
   addFile: (filename: string, content: string) => void;
   removeFile: (id: string) => void;
+  clearFiles: () => void;
 }
 
 function createId(): string {
@@ -34,25 +36,35 @@ function loadStoredResult(): AnalysisResult {
   return EMPTY_RESULT;
 }
 
-function analyzeSingleFile(file: AnalyzedFile): FileAnalysis {
+function namespaceFindings(file: AnalyzedFile, findings: Finding[]): Finding[] {
+  return findings.map((f) => ({
+    ...f,
+    id: `${file.id}:${f.id}`,
+    // Line-specific ids (e.g. "docker-sudo-L4") share one rule.
+    ruleId: f.ruleId ?? f.id.replace(/-L\d+$/, ''),
+    sourceFile: file.filename,
+  }));
+}
+
+export function analyzeSingleFile(file: AnalyzedFile): FileAnalysis {
+  // Secrets leak into every kind of file, so the scanner runs even when the
+  // type is unknown or the type-specific analyzer cannot parse the content.
+  const secretFindings = file.fileType === 'gitignore' ? [] : namespaceFindings(file, scanSecrets(file.content));
   const analyzer = analyzerRegistry[file.fileType];
   if (!analyzer) {
-    return {
-      file,
-      findings: [],
-      parseError: file.fileType === 'unknown' ? 'Could not detect file type.' : null,
-    };
+    return { file, findings: secretFindings, parseError: null };
   }
 
   try {
-    const findings = analyzer(file.content).map((f) => ({
-      ...f,
-      id: `${file.id}:${f.id}`,
-      sourceFile: file.filename,
-    }));
-    return { file, findings, parseError: null };
+    const findings = namespaceFindings(file, analyzer(file.content));
+    // The generic heuristic adds nothing on a line a type-specific rule already explains.
+    const coveredLines = new Set(findings.map((f) => f.line));
+    const extraSecrets = secretFindings.filter(
+      (f) => !(f.ruleId?.startsWith('secret-generic-secret') && coveredLines.has(f.line)),
+    );
+    return { file, findings: [...findings, ...extraSecrets], parseError: null };
   } catch {
-    return { file, findings: [], parseError: 'Failed to parse file content.' };
+    return { file, findings: secretFindings, parseError: 'Failed to parse file content.' };
   }
 }
 
@@ -69,6 +81,8 @@ export function useAnalysis(): UseAnalysisReturn {
   const removeFile = useCallback((id: string) => {
     setFiles((prev) => prev.filter((file) => file.id !== id));
   }, []);
+
+  const clearFiles = useCallback(() => setFiles([]), []);
 
   const fileAnalyses = useMemo<FileAnalysis[]>(() => files.map(analyzeSingleFile), [files]);
 
@@ -92,5 +106,5 @@ export function useAnalysis(): UseAnalysisReturn {
     }
   }, [fileAnalyses]);
 
-  return { fileAnalyses, result, addFile, removeFile };
+  return { fileAnalyses, result, addFile, removeFile, clearFiles };
 }

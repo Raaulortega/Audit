@@ -13,7 +13,7 @@ export function EmptyState({ onLoadPreset }: EmptyStateProps) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="flex flex-col items-center gap-6 rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-14 text-center backdrop-blur-sm"
+      className="flex flex-col items-center gap-6 rounded-2xl border border-white/10 bg-white/3 px-6 py-14 text-center backdrop-blur-xs"
     >
       <motion.div
         animate={{ boxShadow: ['0 0 0px rgba(52,211,153,0)', '0 0 32px rgba(52,211,153,0.25)', '0 0 0px rgba(52,211,153,0)'] }}

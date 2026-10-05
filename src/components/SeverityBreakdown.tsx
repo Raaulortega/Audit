@@ -42,7 +42,7 @@ export function SeverityBreakdown({ counts }: SeverityBreakdownProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: index * 0.08, ease: 'easeOut' }}
           whileHover={{ y: -3 }}
-          className={`rounded-xl border bg-white/[0.03] p-4 text-center backdrop-blur-sm transition-shadow ${border} ${glow}`}
+          className={`rounded-xl border bg-white/3 p-4 text-center backdrop-blur-xs transition-shadow ${border} ${glow}`}
         >
           <Icon className={`mx-auto mb-2 h-5 w-5 ${color}`} />
           <p className={`text-2xl font-bold tabular-nums ${color}`}>{value}</p>

@@ -21,7 +21,7 @@ export function ExamplePresets({ onLoadPreset }: ExamplePresetsProps) {
             onClick={() => onLoadPreset(preset.files)}
             whileHover={{ scale: 1.04, y: -2 }}
             whileTap={{ scale: 0.97 }}
-            className="group rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-left backdrop-blur-sm transition-colors hover:border-emerald-400/40 hover:bg-emerald-400/10"
+            className="group rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-left backdrop-blur-xs transition-colors hover:border-emerald-400/40 hover:bg-emerald-400/10"
           >
             <p className="text-sm font-semibold text-slate-100 group-hover:text-emerald-300">{preset.label}</p>
             <p className="text-xs text-slate-500">{preset.description}</p>

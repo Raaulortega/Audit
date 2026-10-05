@@ -18,7 +18,7 @@ export function LegalModal({ section, onClose }: LegalModalProps) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           onClick={onClose}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-6 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-6 backdrop-blur-xs"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 8 }}

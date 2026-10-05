@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { FileCode2, FileJson, FileWarning, X } from 'lucide-react';
+import { Boxes, FileCode2, FileJson, FileWarning, KeyRound, Server, X, type LucideIcon } from 'lucide-react';
 import type { FileType } from '../engine/types';
 
 interface FileCardProps {
@@ -15,11 +15,25 @@ const FILE_TYPE_LABELS: Record<FileType, string> = {
   packageJson: 'package.json',
   dockerfile: 'Dockerfile',
   gitignore: '.gitignore',
-  unknown: 'Unrecognized',
+  envFile: '.env',
+  dockerCompose: 'docker-compose.yml',
+  nginxConf: 'nginx.conf',
+  unknown: 'Generic text · secret scan only',
+};
+
+const FILE_TYPE_ICONS: Record<FileType, LucideIcon> = {
+  vercelJson: FileJson,
+  packageJson: FileJson,
+  dockerfile: FileCode2,
+  gitignore: FileCode2,
+  envFile: KeyRound,
+  dockerCompose: Boxes,
+  nginxConf: Server,
+  unknown: FileWarning,
 };
 
 export function FileCard({ filename, fileType, parseError, findingCount, onRemove }: FileCardProps) {
-  const Icon = fileType === 'dockerfile' ? FileCode2 : fileType === 'unknown' ? FileWarning : FileJson;
+  const Icon = FILE_TYPE_ICONS[fileType];
 
   return (
     <motion.div
@@ -29,7 +43,7 @@ export function FileCard({ filename, fileType, parseError, findingCount, onRemov
       exit={{ opacity: 0, x: 12, height: 0, marginBottom: 0 }}
       whileHover={{ x: 2 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className={`flex items-center justify-between rounded-lg border bg-white/[0.03] px-4 py-3 backdrop-blur-sm ${
+      className={`flex items-center justify-between rounded-lg border bg-white/3 px-4 py-3 backdrop-blur-xs ${
         parseError ? 'border-red-500/40' : 'border-white/10'
       }`}
     >
@@ -42,11 +56,9 @@ export function FileCard({ filename, fileType, parseError, findingCount, onRemov
         </div>
       </div>
       <div className="flex items-center gap-3">
-        {!parseError && (
-          <span className="text-xs text-slate-400">
-            {findingCount} finding{findingCount === 1 ? '' : 's'}
-          </span>
-        )}
+        <span className="text-xs text-slate-400">
+          {findingCount} finding{findingCount === 1 ? '' : 's'}
+        </span>
         <motion.button
           type="button"
           onClick={onRemove}

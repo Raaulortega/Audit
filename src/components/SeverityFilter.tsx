@@ -28,7 +28,7 @@ export function SeverityFilter({ counts, active, onToggle }: SeverityFilterProps
           className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
             active[severity]
               ? SEVERITY_ACTIVE_STYLES[severity]
-              : 'border-white/10 bg-white/[0.03] text-slate-500 hover:text-slate-300'
+              : 'border-white/10 bg-white/3 text-slate-500 hover:text-slate-300'
           }`}
         >
           {SEVERITY_LABELS[severity]} · {counts[severity]}

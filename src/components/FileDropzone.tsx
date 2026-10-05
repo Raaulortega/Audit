@@ -47,16 +47,21 @@ export function FileDropzone({ onAddFile }: FileDropzoneProps) {
         onDrop={handleDrop}
         animate={{ scale: isDragging ? 1.015 : 1 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-10 backdrop-blur-sm transition-colors ${
+        className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-10 backdrop-blur-xs transition-colors ${
           isDragging
             ? 'border-emerald-400/70 bg-emerald-400/10 shadow-[0_0_32px_rgba(52,211,153,0.25)]'
-            : 'border-white/10 bg-white/[0.03] hover:border-white/20'
+            : 'border-white/10 bg-white/3 hover:border-white/20'
         }`}
       >
         <motion.div animate={isDragging ? { y: [0, -6, 0] } : { y: 0 }} transition={{ duration: 0.8, repeat: isDragging ? Infinity : 0 }}>
           <UploadCloud className={`mb-3 h-10 w-10 ${isDragging ? 'text-emerald-400' : 'text-slate-400'}`} />
         </motion.div>
-        <p className="text-sm text-slate-300">Drag & drop vercel.json, package.json, Dockerfile, or .gitignore</p>
+        <p className="text-center text-sm text-slate-300">
+          Drag & drop vercel.json, package.json, Dockerfile, .gitignore, .env, docker-compose.yml or nginx.conf
+        </p>
+        <p className="mt-1 text-center text-xs text-slate-500">
+          Any other text file is scanned for leaked secrets. Nothing leaves your browser.
+        </p>
         <label className="mt-3 cursor-pointer text-sm text-emerald-400 transition-colors hover:text-emerald-300">
           or browse files
           <input
@@ -71,7 +76,7 @@ export function FileDropzone({ onAddFile }: FileDropzoneProps) {
         </label>
       </motion.div>
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm">
+      <div className="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xs">
         <div className="mb-2 flex items-center gap-2 text-sm text-slate-400">
           <FilePlus2 className="h-4 w-4" />
           Or paste file content
@@ -81,7 +86,7 @@ export function FileDropzone({ onAddFile }: FileDropzoneProps) {
           onChange={(event) => setPastedContent(event.target.value)}
           placeholder="Paste the raw file content here..."
           rows={4}
-          className="w-full resize-y rounded-lg border border-white/10 bg-slate-950/60 p-2 font-mono text-xs text-slate-200 transition-colors focus:border-emerald-400/60 focus:outline-none"
+          className="w-full resize-y rounded-lg border border-white/10 bg-slate-950/60 p-2 font-mono text-xs text-slate-200 transition-colors focus:border-emerald-400/60 focus:outline-hidden"
         />
         <motion.button
           type="button"
