@@ -2,12 +2,14 @@ import { motion } from 'framer-motion';
 import { ShieldAlert } from 'lucide-react';
 import { ExamplePresets } from './ExamplePresets';
 import type { PresetFile } from '../data/examplePresets';
+import { useI18n } from '../i18n/I18nContext';
 
 interface EmptyStateProps {
   onLoadPreset: (files: PresetFile[]) => void;
 }
 
 export function EmptyState({ onLoadPreset }: EmptyStateProps) {
+  const { t } = useI18n();
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -23,9 +25,9 @@ export function EmptyState({ onLoadPreset }: EmptyStateProps) {
         <ShieldAlert className="h-8 w-8 text-emerald-400" />
       </motion.div>
       <div className="space-y-1.5">
-        <h2 className="text-lg font-semibold text-slate-100">No configuration files analyzed yet</h2>
+        <h2 className="text-lg font-semibold text-slate-100">{t.emptyState.title}</h2>
         <p className="mx-auto max-w-md text-sm text-slate-400">
-          Drop a file above, paste raw content, or load a ready-made example below to see the audit engine in action.
+          {t.emptyState.body}
         </p>
       </div>
       <ExamplePresets onLoadPreset={onLoadPreset} />

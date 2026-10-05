@@ -1,30 +1,42 @@
-import { lazy } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { lazy, type ComponentType } from 'react';
+import { Route, Routes } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { HomePage } from './pages/HomePage';
+import { NotFoundPage } from './pages/NotFoundPage';
 
 // Each tool is split into its own chunk so the initial load stays small.
-const ScannerPage = lazy(() => import('./pages/ScannerPage').then((m) => ({ default: m.ScannerPage })));
-const HistoryPage = lazy(() => import('./pages/HistoryPage').then((m) => ({ default: m.HistoryPage })));
-const SecretsPage = lazy(() => import('./pages/SecretsPage').then((m) => ({ default: m.SecretsPage })));
-const JwtPage = lazy(() => import('./pages/JwtPage').then((m) => ({ default: m.JwtPage })));
-const HeadersPage = lazy(() => import('./pages/HeadersPage').then((m) => ({ default: m.HeadersPage })));
-const PasswordLabPage = lazy(() => import('./pages/PasswordLabPage').then((m) => ({ default: m.PasswordLabPage })));
-const RulesPage = lazy(() => import('./pages/RulesPage').then((m) => ({ default: m.RulesPage })));
+const pageLoaders: Record<string, () => Promise<{ default: ComponentType }>> = {
+  scanner: () => import('./pages/ScannerPage').then((m) => ({ default: m.ScannerPage })),
+  history: () => import('./pages/HistoryPage').then((m) => ({ default: m.HistoryPage })),
+  secrets: () => import('./pages/SecretsPage').then((m) => ({ default: m.SecretsPage })),
+  jwt: () => import('./pages/JwtPage').then((m) => ({ default: m.JwtPage })),
+  headers: () => import('./pages/HeadersPage').then((m) => ({ default: m.HeadersPage })),
+  passwords: () => import('./pages/PasswordLabPage').then((m) => ({ default: m.PasswordLabPage })),
+  rules: () => import('./pages/RulesPage').then((m) => ({ default: m.RulesPage })),
+};
+const lazyPages = Object.entries(pageLoaders).map(([path, load]) => ({ path, Page: lazy(load) }));
 
+function pageRoutes() {
+  return (
+    <>
+      <Route index element={<HomePage />} />
+      {lazyPages.map(({ path, Page }) => (
+        <Route key={path} path={path} element={<Page />} />
+      ))}
+      <Route path="*" element={<NotFoundPage />} />
+    </>
+  );
+}
+
+/** English at the root, Spanish under /es — same pages, one crawlable URL per language. */
 export function App() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="scanner" element={<ScannerPage />} />
-        <Route path="history" element={<HistoryPage />} />
-        <Route path="secrets" element={<SecretsPage />} />
-        <Route path="jwt" element={<JwtPage />} />
-        <Route path="headers" element={<HeadersPage />} />
-        <Route path="passwords" element={<PasswordLabPage />} />
-        <Route path="rules" element={<RulesPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/es" element={<AppLayout />}>
+        {pageRoutes()}
+      </Route>
+      <Route path="/" element={<AppLayout />}>
+        {pageRoutes()}
       </Route>
     </Routes>
   );

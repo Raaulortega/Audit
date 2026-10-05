@@ -1,24 +1,38 @@
 import { useCallback, useState, type DragEvent } from 'react';
 import { motion } from 'framer-motion';
-import { FilePlus2, UploadCloud } from 'lucide-react';
+import { AlertTriangle, FilePlus2, UploadCloud } from 'lucide-react';
+import { MAX_FILE_BYTES } from '../engine/storedFiles';
+import { useI18n } from '../i18n/I18nContext';
 
 interface FileDropzoneProps {
   onAddFile: (filename: string, content: string) => void;
 }
 
+const MAX_MB = MAX_FILE_BYTES / (1024 * 1024);
+
 export function FileDropzone({ onAddFile }: FileDropzoneProps) {
+  const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
   const [pastedContent, setPastedContent] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
 
   const readFiles = useCallback(
     (fileList: FileList) => {
+      const rejected: string[] = [];
       Array.from(fileList).forEach((file) => {
+        // Checked before reading: a huge file would freeze the tab in the regex engine.
+        if (file.size > MAX_FILE_BYTES) {
+          rejected.push(t.dropzone.tooLarge(file.name, MAX_MB));
+          return;
+        }
         const reader = new FileReader();
         reader.onload = () => onAddFile(file.name, String(reader.result ?? ''));
+        reader.onerror = () => setErrors((previous) => [...previous, t.dropzone.unreadable(file.name)]);
         reader.readAsText(file);
       });
+      setErrors(rejected);
     },
-    [onAddFile],
+    [onAddFile, t],
   );
 
   const handleDrop = useCallback(
@@ -32,9 +46,14 @@ export function FileDropzone({ onAddFile }: FileDropzoneProps) {
 
   const handlePasteSubmit = useCallback(() => {
     if (pastedContent.trim().length === 0) return;
+    if (pastedContent.length > MAX_FILE_BYTES) {
+      setErrors([t.dropzone.tooLarge('pasted-content', MAX_MB)]);
+      return;
+    }
+    setErrors([]);
     onAddFile('pasted-content', pastedContent);
     setPastedContent('');
-  }, [pastedContent, onAddFile]);
+  }, [pastedContent, onAddFile, t]);
 
   return (
     <div className="space-y-4">
@@ -56,14 +75,10 @@ export function FileDropzone({ onAddFile }: FileDropzoneProps) {
         <motion.div animate={isDragging ? { y: [0, -6, 0] } : { y: 0 }} transition={{ duration: 0.8, repeat: isDragging ? Infinity : 0 }}>
           <UploadCloud className={`mb-3 h-10 w-10 ${isDragging ? 'text-emerald-400' : 'text-slate-400'}`} />
         </motion.div>
-        <p className="text-center text-sm text-slate-300">
-          Drag & drop vercel.json, package.json, Dockerfile, .gitignore, .env, docker-compose.yml or nginx.conf
-        </p>
-        <p className="mt-1 text-center text-xs text-slate-500">
-          Any other text file is scanned for leaked secrets. Nothing leaves your browser.
-        </p>
+        <p className="text-center text-sm text-slate-300">{t.dropzone.dropHint}</p>
+        <p className="mt-1 text-center text-xs text-slate-500">{t.dropzone.otherFiles}</p>
         <label className="mt-3 cursor-pointer text-sm text-emerald-400 transition-colors hover:text-emerald-300">
-          or browse files
+          {t.dropzone.browse}
           <input
             type="file"
             multiple
@@ -76,15 +91,26 @@ export function FileDropzone({ onAddFile }: FileDropzoneProps) {
         </label>
       </motion.div>
 
+      {errors.length > 0 && (
+        <ul role="alert" className="space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+          {errors.map((error) => (
+            <li key={error} className="flex items-center gap-2">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {error}
+            </li>
+          ))}
+        </ul>
+      )}
+
       <div className="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xs">
         <div className="mb-2 flex items-center gap-2 text-sm text-slate-400">
           <FilePlus2 className="h-4 w-4" />
-          Or paste file content
+          {t.dropzone.pasteTitle}
         </div>
         <textarea
           value={pastedContent}
           onChange={(event) => setPastedContent(event.target.value)}
-          placeholder="Paste the raw file content here..."
+          placeholder={t.dropzone.pastePlaceholder}
           rows={4}
           className="w-full resize-y rounded-lg border border-white/10 bg-slate-950/60 p-2 font-mono text-xs text-slate-200 transition-colors focus:border-emerald-400/60 focus:outline-hidden"
         />
@@ -95,7 +121,7 @@ export function FileDropzone({ onAddFile }: FileDropzoneProps) {
           whileTap={{ scale: 0.97 }}
           className="mt-2 rounded-lg bg-emerald-500 px-3 py-1.5 text-sm font-medium text-slate-950 shadow-[0_0_16px_rgba(52,211,153,0.35)] transition-colors hover:bg-emerald-400"
         >
-          Analyze pasted content
+          {t.dropzone.analyzePasted}
         </motion.button>
       </div>
     </div>

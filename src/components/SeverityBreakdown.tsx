@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useI18n } from '../i18n/I18nContext';
 import { AlertCircle, AlertTriangle, Info } from 'lucide-react';
 
 interface SeverityBreakdownProps {
@@ -6,9 +7,10 @@ interface SeverityBreakdownProps {
 }
 
 export function SeverityBreakdown({ counts }: SeverityBreakdownProps) {
+  const { t } = useI18n();
   const items = [
     {
-      label: 'Critical',
+      label: t.common.severity.critical,
       value: counts.critical,
       Icon: AlertTriangle,
       color: 'text-red-400',
@@ -16,7 +18,7 @@ export function SeverityBreakdown({ counts }: SeverityBreakdownProps) {
       border: 'border-red-500/20 hover:border-red-400/50',
     },
     {
-      label: 'Medium',
+      label: t.common.severity.medium,
       value: counts.medium,
       Icon: AlertCircle,
       color: 'text-amber-400',
@@ -24,7 +26,7 @@ export function SeverityBreakdown({ counts }: SeverityBreakdownProps) {
       border: 'border-amber-500/20 hover:border-amber-400/50',
     },
     {
-      label: 'Low',
+      label: t.common.severity.low,
       value: counts.low,
       Icon: Info,
       color: 'text-sky-400',

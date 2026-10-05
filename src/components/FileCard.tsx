@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Boxes, FileCode2, FileJson, FileWarning, KeyRound, Server, X, type LucideIcon } from 'lucide-react';
 import type { FileType } from '../engine/types';
+import { useI18n } from '../i18n/I18nContext';
 
 interface FileCardProps {
   filename: string;
@@ -10,7 +11,7 @@ interface FileCardProps {
   onRemove: () => void;
 }
 
-const FILE_TYPE_LABELS: Record<FileType, string> = {
+const FILE_TYPE_LABELS: Record<Exclude<FileType, 'unknown'>, string> = {
   vercelJson: 'vercel.json',
   packageJson: 'package.json',
   dockerfile: 'Dockerfile',
@@ -18,7 +19,6 @@ const FILE_TYPE_LABELS: Record<FileType, string> = {
   envFile: '.env',
   dockerCompose: 'docker-compose.yml',
   nginxConf: 'nginx.conf',
-  unknown: 'Generic text · secret scan only',
 };
 
 const FILE_TYPE_ICONS: Record<FileType, LucideIcon> = {
@@ -33,6 +33,7 @@ const FILE_TYPE_ICONS: Record<FileType, LucideIcon> = {
 };
 
 export function FileCard({ filename, fileType, parseError, findingCount, onRemove }: FileCardProps) {
+  const { t } = useI18n();
   const Icon = FILE_TYPE_ICONS[fileType];
 
   return (
@@ -51,13 +52,13 @@ export function FileCard({ filename, fileType, parseError, findingCount, onRemov
         <Icon className="h-5 w-5 text-slate-400" />
         <div>
           <p className="text-sm font-medium text-slate-200">{filename}</p>
-          <p className="text-xs text-slate-500">{FILE_TYPE_LABELS[fileType]}</p>
-          {parseError && <p className="mt-1 text-xs text-red-400">{parseError}</p>}
+          <p className="text-xs text-slate-500">{fileType === 'unknown' ? t.fileCard.genericType : FILE_TYPE_LABELS[fileType]}</p>
+          {parseError && <p className="mt-1 text-xs text-red-400">{t.fileCard.parseError}</p>}
         </div>
       </div>
       <div className="flex items-center gap-3">
         <span className="text-xs text-slate-400">
-          {findingCount} finding{findingCount === 1 ? '' : 's'}
+          {t.fileCard.findings(findingCount)}
         </span>
         <motion.button
           type="button"
@@ -65,7 +66,7 @@ export function FileCard({ filename, fileType, parseError, findingCount, onRemov
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.9 }}
           className="text-slate-500 hover:text-red-400"
-          aria-label={`Remove ${filename}`}
+          aria-label={t.fileCard.remove(filename)}
         >
           <X className="h-4 w-4" />
         </motion.button>

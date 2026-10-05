@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useI18n } from '../i18n/I18nContext';
 import type { Severity } from '../engine/types';
 
 interface SeverityFilterProps {
@@ -8,7 +9,6 @@ interface SeverityFilterProps {
 }
 
 const SEVERITY_ORDER: Severity[] = ['critical', 'medium', 'low'];
-const SEVERITY_LABELS: Record<Severity, string> = { critical: 'Critical', medium: 'Medium', low: 'Low' };
 const SEVERITY_ACTIVE_STYLES: Record<Severity, string> = {
   critical: 'border-red-400/60 bg-red-400/15 text-red-300 shadow-[0_0_16px_rgba(248,113,113,0.35)]',
   medium: 'border-amber-400/60 bg-amber-400/15 text-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.3)]',
@@ -16,6 +16,7 @@ const SEVERITY_ACTIVE_STYLES: Record<Severity, string> = {
 };
 
 export function SeverityFilter({ counts, active, onToggle }: SeverityFilterProps) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-wrap gap-2">
       {SEVERITY_ORDER.map((severity) => (
@@ -31,7 +32,7 @@ export function SeverityFilter({ counts, active, onToggle }: SeverityFilterProps
               : 'border-white/10 bg-white/3 text-slate-500 hover:text-slate-300'
           }`}
         >
-          {SEVERITY_LABELS[severity]} · {counts[severity]}
+          {t.common.severity[severity]} · {counts[severity]}
         </motion.button>
       ))}
     </div>

@@ -4,13 +4,13 @@ import { ChevronDown, Search, ShieldCheck } from 'lucide-react';
 import { CodeSnippet } from './CodeSnippet';
 import { SeverityFilter } from './SeverityFilter';
 import type { Finding, Severity } from '../engine/types';
+import { useI18n } from '../i18n/I18nContext';
 
 interface FindingsListProps {
   findings: Finding[];
 }
 
 const SEVERITY_ORDER: Severity[] = ['critical', 'medium', 'low'];
-const SEVERITY_LABELS: Record<Severity, string> = { critical: 'Critical', medium: 'Medium', low: 'Low' };
 const SEVERITY_BORDER: Record<Severity, string> = {
   critical: 'border-red-500/30 hover:border-red-400/50',
   medium: 'border-amber-500/30 hover:border-amber-400/50',
@@ -27,6 +27,7 @@ function emptyActiveMap(value: boolean): Record<Severity, boolean> {
 }
 
 export function FindingsList({ findings }: FindingsListProps) {
+  const { t } = useI18n();
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [active, setActive] = useState<Record<Severity, boolean>>(() => emptyActiveMap(true));
   const [query, setQuery] = useState('');
@@ -68,7 +69,7 @@ export function FindingsList({ findings }: FindingsListProps) {
     return (
       <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/3 px-4 py-6 text-sm text-slate-500">
         <ShieldCheck className="h-4 w-4 text-slate-600" />
-        No findings yet. Add a configuration file to begin.
+        {t.findings.empty}
       </div>
     );
   }
@@ -78,13 +79,13 @@ export function FindingsList({ findings }: FindingsListProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SeverityFilter counts={counts} active={active} onToggle={toggleSeverity} />
         <label className="relative block sm:w-64">
-          <span className="sr-only">Search findings</span>
+          <span className="sr-only">{t.findings.search}</span>
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
           <input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search title, file, CWE…"
+            placeholder={t.findings.searchPlaceholder}
             className="w-full rounded-lg border border-white/10 bg-slate-950/60 py-1.5 pl-8 pr-2 text-xs text-slate-200 transition-colors focus:border-emerald-400/60 focus:outline-hidden"
           />
         </label>
@@ -92,7 +93,7 @@ export function FindingsList({ findings }: FindingsListProps) {
 
       {visibleFindings.length === 0 ? (
         <p className="rounded-xl border border-white/10 bg-white/3 px-4 py-6 text-center text-sm text-slate-500">
-          No findings match the selected filters or search.
+          {t.findings.noMatch}
         </p>
       ) : (
         <motion.div layout className="space-y-3">
@@ -122,7 +123,7 @@ export function FindingsList({ findings }: FindingsListProps) {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="hidden text-xs uppercase tracking-wide text-slate-500 sm:inline">
-                        {SEVERITY_LABELS[finding.severity]} · {finding.sourceFile}
+                        {t.common.severity[finding.severity]} · {finding.sourceFile}
                         {finding.line ? `:${finding.line}` : ''}
                       </span>
                       <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>

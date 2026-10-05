@@ -10,8 +10,7 @@ import {
   verifyJwtSignature,
   type DecodedJwt,
 } from '../engine/jwt';
-
-const TIME_CLAIMS: Record<string, string> = { iat: 'Issued at', nbf: 'Not before', exp: 'Expires' };
+import { useI18n } from '../i18n/I18nContext';
 
 function JsonBlock({ value, tone }: { value: Record<string, unknown>; tone: string }) {
   return (
@@ -39,6 +38,7 @@ function TokenSegments({ token }: { token: string }) {
  * that secret is a well-known default. Helps teams audit their own signing keys.
  */
 function SignatureTools({ decoded }: { decoded: DecodedJwt }) {
+  const { t } = useI18n();
   const [secret, setSecret] = useState('');
   const [verified, setVerified] = useState<boolean | null>(null);
   const alg = String(decoded.header.alg);
@@ -51,8 +51,8 @@ function SignatureTools({ decoded }: { decoded: DecodedJwt }) {
   if (!isHmac) {
     return (
       <p className="text-sm text-slate-400">
-        Signature checks here apply to HMAC tokens (HS256/384/512). This token uses{' '}
-        <code className="text-slate-200">{alg}</code>; verifying it needs the issuer’s public key.
+        {t.jwt.nonHmacBefore} <code className="text-slate-200">{alg}</code>
+        {t.jwt.nonHmacAfter}
       </p>
     );
   }
@@ -63,20 +63,17 @@ function SignatureTools({ decoded }: { decoded: DecodedJwt }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-400">
-        Paste your signing secret to confirm the token verifies and that the secret is not a known default. Everything
-        runs locally.
-      </p>
+      <p className="text-sm text-slate-400">{t.jwt.signingIntro}</p>
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
           value={secret}
           onChange={(event) => setSecret(event.target.value)}
-          placeholder="HMAC signing secret"
-          aria-label="HMAC signing secret"
+          placeholder={t.jwt.secretPlaceholder}
+          aria-label={t.jwt.secretPlaceholder}
           className="flex-1 rounded-lg border border-white/10 bg-slate-950/60 px-3 py-1.5 font-mono text-sm text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
         />
         <Button variant="primary" onClick={verify} disabled={secret.length === 0}>
-          Verify signature
+          {t.jwt.verify}
         </Button>
       </div>
 
@@ -90,12 +87,9 @@ function SignatureTools({ decoded }: { decoded: DecodedJwt }) {
         >
           {verified ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> : <XCircle className="mt-0.5 h-4 w-4 shrink-0" />}
           <span>
-            {verified ? 'Signature is valid for this secret.' : 'Signature does not match this secret.'}
+            {verified ? t.jwt.valid : t.jwt.invalidSignature}
             {verified && isWeakSigningSecret(secret) && (
-              <strong className="mt-1 block text-red-300">
-                This is a well-known default secret. Replace it with 32+ random bytes immediately — a predictable secret
-                defeats the whole point of signing.
-              </strong>
+              <strong className="mt-1 block text-red-300">{t.jwt.weakSecret}</strong>
             )}
           </span>
         </div>
@@ -107,6 +101,7 @@ function SignatureTools({ decoded }: { decoded: DecodedJwt }) {
 const SAMPLE_PAYLOAD = { sub: '1234567890', name: 'Ada Lovelace', role: 'admin', iat: 1_700_000_000 };
 
 export function JwtPage() {
+  const { t } = useI18n();
   const [input, setInput] = useState('');
 
   const decoded = useMemo(() => {
@@ -114,9 +109,9 @@ export function JwtPage() {
     try {
       return { token: decodeJwt(input), error: null as string | null };
     } catch (error) {
-      return { token: null, error: error instanceof Error ? error.message : 'Invalid token.' };
+      return { token: null, error: error instanceof Error ? error.message : t.jwt.invalid };
     }
-  }, [input]);
+  }, [input, t]);
 
   const issues = useMemo(() => (decoded?.token ? auditJwt(decoded.token) : []), [decoded]);
 
@@ -129,29 +124,29 @@ export function JwtPage() {
     <div className="space-y-6">
       <PageHeader
         icon={Fingerprint}
-        eyebrow="Toolkit"
-        title="JWT inspector"
-        description="Decode a JSON Web Token, review its header and claims, and audit it for insecure configuration (alg none, missing expiry, sensitive data in the payload). Tokens are decoded in your browser only."
+        eyebrow={t.jwt.eyebrow}
+        title={t.jwt.title}
+        description={t.jwt.description}
         actions={
           <>
             <Button onClick={loadSample}>
               <Sparkles className="h-4 w-4" />
-              Load sample
+              {t.common.loadSample}
             </Button>
-            {input && <Button onClick={() => setInput('')}>Clear</Button>}
+            {input && <Button onClick={() => setInput('')}>{t.common.clear}</Button>}
           </>
         }
       />
 
       <Card>
-        <CardTitle hint="Paste a JWT — never paste production tokens you don't own">Token</CardTitle>
+        <CardTitle hint={t.jwt.tokenHint}>{t.jwt.token}</CardTitle>
         <textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder="eyJhbGciOi…"
           rows={4}
           spellCheck={false}
-          aria-label="JWT to inspect"
+          aria-label={t.jwt.tokenAria}
           className="w-full resize-y rounded-lg border border-white/10 bg-slate-950/60 p-3 font-mono text-xs text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
         />
         {input.trim() && (
@@ -172,14 +167,14 @@ export function JwtPage() {
         <>
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
-              <CardTitle hint="Algorithm & key id">Header</CardTitle>
+              <CardTitle hint={t.jwt.headerHint}>{t.jwt.header}</CardTitle>
               <JsonBlock value={decoded.token.header} tone="text-rose-200" />
             </Card>
             <Card>
-              <CardTitle hint="Claims">Payload</CardTitle>
+              <CardTitle hint={t.jwt.payloadHint}>{t.jwt.payload}</CardTitle>
               <JsonBlock value={decoded.token.payload} tone="text-violet-200" />
               <div className="mt-3 space-y-1">
-                {Object.entries(TIME_CLAIMS).map(([claim, label]) => {
+                {Object.entries(t.jwt.timeClaims).map(([claim, label]) => {
                   const value = decoded.token?.payload[claim];
                   if (typeof value !== 'number') return null;
                   return (
@@ -194,11 +189,11 @@ export function JwtPage() {
           </div>
 
           <Card>
-            <CardTitle hint={`${issues.length} issue${issues.length === 1 ? '' : 's'}`}>Security audit</CardTitle>
+            <CardTitle hint={t.jwt.issues(issues.length)}>{t.jwt.audit}</CardTitle>
             {issues.length === 0 ? (
               <p className="flex items-center gap-2 text-sm text-emerald-300">
                 <CheckCircle2 className="h-4 w-4" />
-                No static issues found. Always verify the signature server-side against a pinned key.
+                {t.jwt.noIssues}
               </p>
             ) : (
               <ul className="space-y-3">
@@ -219,7 +214,7 @@ export function JwtPage() {
           </Card>
 
           <Card>
-            <CardTitle>Signing-secret check</CardTitle>
+            <CardTitle>{t.jwt.signingCheck}</CardTitle>
             <SignatureTools decoded={decoded.token} />
           </Card>
         </>

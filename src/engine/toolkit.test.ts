@@ -3,9 +3,12 @@ import { auditJwt, decodeJwt, isWeakSigningSecret, signHs256, verifyJwtSignature
 import { buildHeaders, DEFAULT_HEADER_CONFIG, toNginx, toVercelJson } from './headerBuilder';
 import { analyzePassword, formatDuration, generateSecret, secretEntropyBits } from './passwordLab';
 import { findCatalogRule, RULE_CATALOG } from './ruleCatalog';
-import { compareScans, createSnapshot, parseSnapshots } from './history';
+import { compareScans, createSnapshot, parseSnapshots, upsertSnapshot } from './history';
 import { redactSecrets } from './secretScanner';
+import { MAX_FILE_BYTES, parseStoredFiles, sanitizeStoredFiles } from './storedFiles';
 import type { AnalysisResult } from './types';
+import { en } from '../i18n/en';
+import { es } from '../i18n/es';
 
 describe('jwt', () => {
   it('round-trips sign → decode → verify', async () => {
@@ -64,6 +67,8 @@ describe('passwordLab', () => {
   it('formats durations and generates secrets of the requested length', () => {
     expect(formatDuration(0.5)).toBe('instantly');
     expect(formatDuration(3600)).toBe('1 hour');
+    expect(formatDuration(7200, 'es')).toBe('2 horas');
+    expect(formatDuration(0.5, 'es')).toBe('al instante');
     expect(generateSecret('hex', 16)).toMatch(/^[0-9a-f]{16}$/);
     expect(secretEntropyBits('hex', 16)).toBe(64);
   });
@@ -112,6 +117,54 @@ describe('history', () => {
     expect(parseSnapshots(null)).toEqual([]);
     expect(parseSnapshots('not json')).toEqual([]);
     expect(parseSnapshots('{"not":"array"}')).toEqual([]);
+    expect(parseSnapshots('[{"id":"x","savedAt":"t","score":1,"findings":[]}]')).toEqual([]);
+  });
+
+  it('keeps an empty label so the UI can name the scan in the current language', () => {
+    expect(createSnapshot(make(90, []), ['a'], '   ').label).toBe('');
+  });
+
+  it('upsertSnapshot updates an entry in place or prepends a new one', () => {
+    const first = createSnapshot(make(50, ['r1']), ['a'], '', new Date(0), 'scan-1');
+    const second = createSnapshot(make(60, ['r1']), ['a'], '', new Date(1), 'scan-2');
+    const history = upsertSnapshot(upsertSnapshot([], first), second);
+    expect(history.map((entry) => entry.id)).toEqual(['scan-2', 'scan-1']);
+
+    const updated = upsertSnapshot(history, { ...first, score: 99 });
+    expect(updated.map((entry) => entry.id)).toEqual(['scan-2', 'scan-1']);
+    expect(updated[1].score).toBe(99);
+  });
+});
+
+describe('parseStoredFiles', () => {
+  it('restores well-formed files and drops corrupt or oversized entries', () => {
+    const valid = { id: '1', filename: '.env', content: 'A=1' };
+    const raw = JSON.stringify([valid, { id: 2 }, null, { ...valid, id: '3', content: 'x'.repeat(MAX_FILE_BYTES + 1) }]);
+    expect(parseStoredFiles(raw)).toEqual([valid]);
+    expect(parseStoredFiles('not json')).toEqual([]);
+    expect(parseStoredFiles(null)).toEqual([]);
+    expect(sanitizeStoredFiles(undefined)).toEqual([]);
+    expect(sanitizeStoredFiles([valid, 'junk'])).toEqual([valid]);
+  });
+});
+
+describe('i18n', () => {
+  it('has a Spanish entry for every English navigation item, preset and password message', () => {
+    const keys = (value: object) => Object.keys(value).sort();
+    expect(keys(es.nav.items)).toEqual(keys(en.nav.items));
+    expect(keys(es.emptyState.presets)).toEqual(keys(en.emptyState.presets));
+    expect(keys(es.passwords.warnings)).toEqual(keys(en.passwords.warnings));
+    expect(keys(es.passwords.scenarios)).toEqual(keys(en.passwords.scenarios));
+    expect(keys(es.jwt.timeClaims)).toEqual(keys(en.jwt.timeClaims));
+  });
+
+  it('translates every warning the password analyzer can emit', () => {
+    const { warnings } = analyzePassword('aaa1234');
+    expect(warnings.length).toBeGreaterThan(0);
+    for (const warning of warnings) {
+      expect(en.passwords.warnings[warning]).toBeTruthy();
+      expect(es.passwords.warnings[warning]).toBeTruthy();
+    }
   });
 });
 

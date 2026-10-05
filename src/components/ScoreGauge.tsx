@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useI18n } from '../i18n/I18nContext';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 
 interface ScoreGaugeProps {
@@ -8,16 +9,17 @@ interface ScoreGaugeProps {
 interface ScoreTier {
   color: string;
   glow: string;
-  label: string;
+  label: 'strong' | 'attention' | 'critical';
 }
 
 function scoreTier(score: number): ScoreTier {
-  if (score >= 80) return { color: '#34d399', glow: 'rgba(52,211,153,0.55)', label: 'Strong posture' };
-  if (score >= 50) return { color: '#fbbf24', glow: 'rgba(251,191,36,0.5)', label: 'Needs attention' };
-  return { color: '#f87171', glow: 'rgba(248,113,113,0.55)', label: 'Critical exposure' };
+  if (score >= 80) return { color: '#34d399', glow: 'rgba(52,211,153,0.55)', label: 'strong' };
+  if (score >= 50) return { color: '#fbbf24', glow: 'rgba(251,191,36,0.5)', label: 'attention' };
+  return { color: '#f87171', glow: 'rgba(248,113,113,0.55)', label: 'critical' };
 }
 
 export function ScoreGauge({ score }: ScoreGaugeProps) {
+  const { t } = useI18n();
   const radius = 70;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
@@ -70,9 +72,9 @@ export function ScoreGauge({ score }: ScoreGaugeProps) {
           <span className="text-xs font-medium uppercase tracking-wide text-slate-500">/ 100</span>
         </div>
       </div>
-      <p className="mt-3 text-sm font-medium text-slate-300">Security Score</p>
+      <p className="mt-3 text-sm font-medium text-slate-300">{t.score.title}</p>
       <p className="text-xs" style={{ color }}>
-        {label}
+        {t.score[label]}
       </p>
     </div>
   );

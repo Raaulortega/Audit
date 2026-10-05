@@ -1,4 +1,5 @@
 import type { Severity } from '../engine/types';
+import { useI18n } from '../i18n/I18nContext';
 
 const STYLES: Record<Severity | 'varies', string> = {
   critical: 'border-red-400/40 bg-red-400/10 text-red-300',
@@ -8,11 +9,12 @@ const STYLES: Record<Severity | 'varies', string> = {
 };
 
 export function SeverityBadge({ severity }: { severity: Severity | 'varies' }) {
+  const { t } = useI18n();
   return (
     <span
       className={`inline-flex shrink-0 items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${STYLES[severity]}`}
     >
-      {severity}
+      {t.common.severity[severity]}
     </span>
   );
 }

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Download, FileJson, FileText, ShieldHalf } from 'lucide-react';
 import type { AnalysisResult } from '../engine/types';
 import { downloadTextFile, toJsonReport, toMarkdownReport, toSarifReport } from '../engine/report';
+import { useI18n } from '../i18n/I18nContext';
 
 interface ExportReportProps {
   result: AnalysisResult;
@@ -12,22 +13,23 @@ function timestamp(): string {
 }
 
 export function ExportReport({ result }: ExportReportProps) {
+  const { t } = useI18n();
   const exports = [
     {
       label: 'Markdown',
-      hint: 'Share in a PR or ticket',
+      hint: t.exportReport.markdownHint,
       Icon: FileText,
       onClick: () => downloadTextFile(`security-audit-${timestamp()}.md`, toMarkdownReport(result), 'text/markdown'),
     },
     {
       label: 'JSON',
-      hint: 'Feed other tools',
+      hint: t.exportReport.jsonHint,
       Icon: FileJson,
       onClick: () => downloadTextFile(`security-audit-${timestamp()}.json`, toJsonReport(result), 'application/json'),
     },
     {
       label: 'SARIF',
-      hint: 'Upload to GitHub code scanning',
+      hint: t.exportReport.sarifHint,
       Icon: ShieldHalf,
       onClick: () =>
         downloadTextFile(`security-audit-${timestamp()}.sarif`, toSarifReport(result), 'application/sarif+json'),
@@ -38,7 +40,7 @@ export function ExportReport({ result }: ExportReportProps) {
     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/3 p-3 backdrop-blur-xs">
       <span className="mr-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
         <Download className="h-3.5 w-3.5 text-emerald-400" />
-        Export report
+        {t.exportReport.title}
       </span>
       {exports.map(({ label, hint, Icon, onClick }) => (
         <motion.button

@@ -33,14 +33,33 @@ export function compareScans(before: ScanSnapshot, after: ScanSnapshot): ScanCom
   };
 }
 
-export function createSnapshot(result: AnalysisResult, fileNames: string[], label: string, now = new Date()): ScanSnapshot {
+/**
+ * An empty label is kept as-is so the UI can show a default name in the
+ * current language instead of freezing one language into storage.
+ */
+export function createSnapshot(
+  result: AnalysisResult,
+  fileNames: string[],
+  label: string,
+  now = new Date(),
+  id = `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+): ScanSnapshot {
   return {
     ...result,
-    id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+    id,
     savedAt: now.toISOString(),
-    label: label.trim() || `Scan of ${fileNames.length} file${fileNames.length === 1 ? '' : 's'}`,
+    label: label.trim(),
     fileNames,
   };
+}
+
+/** Replaces the snapshot with the same id in place, or prepends it; keeps at most MAX_SNAPSHOTS. */
+export function upsertSnapshot(history: ScanSnapshot[], snapshot: ScanSnapshot): ScanSnapshot[] {
+  const index = history.findIndex((entry) => entry.id === snapshot.id);
+  if (index === -1) return [snapshot, ...history].slice(0, MAX_SNAPSHOTS);
+  const next = [...history];
+  next[index] = snapshot;
+  return next;
 }
 
 /** Accepts only well-formed snapshots so a corrupted localStorage entry cannot crash the page. */
@@ -55,7 +74,11 @@ export function parseSnapshots(raw: string | null): ScanSnapshot[] {
         entry !== null &&
         typeof entry.id === 'string' &&
         typeof entry.savedAt === 'string' &&
+        typeof entry.label === 'string' &&
         typeof entry.score === 'number' &&
+        typeof entry.counts === 'object' &&
+        entry.counts !== null &&
+        Array.isArray(entry.fileNames) &&
         Array.isArray(entry.findings),
     );
   } catch {

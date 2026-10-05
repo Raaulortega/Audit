@@ -1,12 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AnalysisResult, AnalyzedFile, Finding } from '../engine/types';
 import { detectFileType } from '../engine/detectFileType';
 import { analyzerRegistry } from '../engine/analyzers';
 import { buildAnalysisResult } from '../engine/scoring';
 import { scanSecrets } from '../engine/secretScanner';
+import {
+  MAX_FILE_BYTES,
+  loadFilesFromDb,
+  parseStoredFiles,
+  saveFilesToDb,
+  type StoredFile,
+} from '../engine/storedFiles';
 
-const STORAGE_KEY = 'config-audit:last-result';
-const EMPTY_RESULT: AnalysisResult = { score: 100, findings: [], counts: { critical: 0, medium: 0, low: 0 } };
+/** Older builds kept the files (or only the last result) in localStorage; they move to IndexedDB. */
+const LEGACY_FILES_KEY = 'config-audit:files';
+const LEGACY_RESULT_KEY = 'config-audit:last-result';
 
 export interface FileAnalysis {
   file: AnalyzedFile;
@@ -17,6 +25,10 @@ export interface FileAnalysis {
 interface UseAnalysisReturn {
   fileAnalyses: FileAnalysis[];
   result: AnalysisResult;
+  /** False until the files saved by a previous visit have been restored. */
+  hydrated: boolean;
+  /** True when the browser refused to store the files, so they will not survive a reload. */
+  storageFull: boolean;
   addFile: (filename: string, content: string) => void;
   removeFile: (id: string) => void;
   clearFiles: () => void;
@@ -26,14 +38,27 @@ function createId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function loadStoredResult(): AnalysisResult {
+function readLegacyFiles(): StoredFile[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as AnalysisResult;
+    return parseStoredFiles(localStorage.getItem(LEGACY_FILES_KEY));
   } catch {
-    // localStorage unavailable (e.g. private browsing) - fall back to empty result
+    // localStorage unavailable - nothing to migrate
+    return [];
   }
-  return EMPTY_RESULT;
+}
+
+/** Called only after IndexedDB holds the files, so a failed migration never loses them. */
+function removeLegacyKeys(): void {
+  try {
+    localStorage.removeItem(LEGACY_FILES_KEY);
+    localStorage.removeItem(LEGACY_RESULT_KEY);
+  } catch {
+    // localStorage unavailable - nothing to remove
+  }
+}
+
+function toAnalyzedFile(file: StoredFile): AnalyzedFile {
+  return { ...file, fileType: detectFileType(file.filename, file.content) };
 }
 
 function namespaceFindings(file: AnalyzedFile, findings: Finding[]): Finding[] {
@@ -70,10 +95,29 @@ export function analyzeSingleFile(file: AnalyzedFile): FileAnalysis {
 
 export function useAnalysis(): UseAnalysisReturn {
   const [files, setFiles] = useState<AnalyzedFile[]>([]);
-  const [result, setResult] = useState<AnalysisResult>(loadStoredResult);
-  const hasAnalyzed = useRef(false);
+  const [hydrated, setHydrated] = useState(false);
+  const [storageFull, setStorageFull] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const legacy = readLegacyFiles();
+    loadFilesFromDb()
+      .catch(() => [] as StoredFile[])
+      .then((stored) => {
+        if (cancelled) return;
+        const restored = (stored.length > 0 ? stored : legacy).map(toAnalyzedFile);
+        // Files added while the database was still loading are kept after the restored ones.
+        setFiles((current) => [...restored, ...current.filter((file) => !restored.some((r) => r.id === file.id))]);
+        setHydrated(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const addFile = useCallback((filename: string, content: string) => {
+    // Callers check the size first; this guard keeps oversized input out of the regex engine regardless.
+    if (content.length > MAX_FILE_BYTES) return;
     const fileType = detectFileType(filename, content);
     setFiles((prev) => [...prev, { id: createId(), filename, content, fileType }]);
   }, []);
@@ -86,25 +130,27 @@ export function useAnalysis(): UseAnalysisReturn {
 
   const fileAnalyses = useMemo<FileAnalysis[]>(() => files.map(analyzeSingleFile), [files]);
 
+  const result = useMemo<AnalysisResult>(
+    () => buildAnalysisResult(fileAnalyses.flatMap((entry) => entry.findings)),
+    [fileAnalyses],
+  );
+
+  // The files themselves persist (not just the result), so a reload restores the full scan.
+  // Saving waits for hydration, otherwise the initial empty list would wipe the stored files.
   useEffect(() => {
-    // Keep showing the result restored from localStorage until analysis has
-    // actually happened at least once (i.e. a file has been loaded). Once
-    // `hasAnalyzed.current` flips to true, every subsequent change to `files`
-    // (including removing the last one) recomputes live, since only the
-    // AnalysisResult - not the files - persists.
-    if (!hasAnalyzed.current && files.length === 0) return;
-    hasAnalyzed.current = true;
+    if (!hydrated) return;
+    let cancelled = false;
+    saveFilesToDb(files.map(({ id, filename, content }) => ({ id, filename, content })))
+      .then(() => {
+        removeLegacyKeys();
+        if (!cancelled) setStorageFull(false);
+      })
+      // Quota exceeded or IndexedDB disabled (some private modes) - keep working in memory and tell the user.
+      .catch(() => !cancelled && setStorageFull(files.length > 0));
+    return () => {
+      cancelled = true;
+    };
+  }, [files, hydrated]);
 
-    const allFindings = fileAnalyses.flatMap((entry) => entry.findings);
-    const nextResult = buildAnalysisResult(allFindings);
-    setResult(nextResult);
-
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextResult));
-    } catch {
-      // localStorage unavailable (e.g. private browsing) - persistence is best-effort
-    }
-  }, [fileAnalyses]);
-
-  return { fileAnalyses, result, addFile, removeFile, clearFiles };
+  return { fileAnalyses, result, hydrated, storageFull, addFile, removeFile, clearFiles };
 }

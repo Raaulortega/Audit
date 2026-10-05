@@ -11,6 +11,7 @@ import {
   buildHeaders,
   type HeaderConfig,
 } from '../engine/headerBuilder';
+import { useI18n } from '../i18n/I18nContext';
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
   return (
@@ -33,6 +34,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 }
 
 export function HeadersPage() {
+  const { t } = useI18n();
   const [config, setConfig] = useState<HeaderConfig>(DEFAULT_HEADER_CONFIG);
   const [format, setFormat] = useState<(typeof HEADER_FORMATS)[number]['id']>('vercel');
 
@@ -49,13 +51,13 @@ export function HeadersPage() {
     <div className="space-y-6">
       <PageHeader
         icon={ShieldCheck}
-        eyebrow="Toolkit"
-        title="Security header builder"
-        description="Toggle the headers you need and copy a ready-to-deploy snippet for your platform. Defaults follow OWASP’s Secure Headers project."
+        eyebrow={t.headers.eyebrow}
+        title={t.headers.title}
+        description={t.headers.description}
         actions={
           <Button onClick={() => setConfig(DEFAULT_HEADER_CONFIG)}>
             <RotateCcw className="h-4 w-4" />
-            Reset
+            {t.headers.reset}
           </Button>
         }
       />
@@ -63,13 +65,13 @@ export function HeadersPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <div className="space-y-6">
           <Card>
-            <CardTitle hint="HSTS">Transport</CardTitle>
+            <CardTitle hint="HSTS">{t.headers.transport}</CardTitle>
             <div className="space-y-3">
               <Toggle label="Strict-Transport-Security" checked={config.hsts.enabled} onChange={(v) => patch('hsts', { ...config.hsts, enabled: v })} />
               {config.hsts.enabled && (
                 <div className="space-y-3 border-l border-white/10 pl-3">
                   <label className="block text-xs text-slate-400">
-                    max-age (seconds)
+                    {t.headers.maxAge}
                     <input
                       type="number"
                       min={0}
@@ -88,7 +90,7 @@ export function HeadersPage() {
           <Card>
             <CardTitle hint="CSP">Content-Security-Policy</CardTitle>
             <div className="space-y-3">
-              <Toggle label="Enable CSP" checked={config.csp.enabled} onChange={(v) => patch('csp', { ...config.csp, enabled: v })} />
+              <Toggle label={t.headers.enableCsp} checked={config.csp.enabled} onChange={(v) => patch('csp', { ...config.csp, enabled: v })} />
               {config.csp.enabled && (
                 <div className="space-y-2 border-l border-white/10 pl-3">
                   {CSP_DIRECTIVES.map((directive) => (
@@ -96,7 +98,7 @@ export function HeadersPage() {
                       {directive}
                       <input
                         value={config.csp.directives[directive] ?? ''}
-                        placeholder="(unset)"
+                        placeholder={t.headers.unset}
                         onChange={(event) =>
                           patch('csp', {
                             ...config.csp,
@@ -116,7 +118,7 @@ export function HeadersPage() {
 
         <div className="space-y-6">
           <Card>
-            <CardTitle>Framing & typing</CardTitle>
+            <CardTitle>{t.headers.framing}</CardTitle>
             <div className="space-y-3">
               <label className="flex items-center justify-between gap-3 text-sm text-slate-300">
                 X-Frame-Options
@@ -149,8 +151,8 @@ export function HeadersPage() {
           </Card>
 
           <Card>
-            <CardTitle hint="Block browser features">Permissions-Policy</CardTitle>
-            <Toggle label="Enable Permissions-Policy" checked={config.permissionsPolicy.enabled} onChange={(v) => patch('permissionsPolicy', { ...config.permissionsPolicy, enabled: v })} />
+            <CardTitle hint={t.headers.permissionsHint}>Permissions-Policy</CardTitle>
+            <Toggle label={t.headers.enablePermissions} checked={config.permissionsPolicy.enabled} onChange={(v) => patch('permissionsPolicy', { ...config.permissionsPolicy, enabled: v })} />
             {config.permissionsPolicy.enabled && (
               <div className="mt-3 flex flex-wrap gap-1.5 border-l border-white/10 pl-3">
                 {PERMISSIONS_FEATURES.map((feature) => {
@@ -180,11 +182,11 @@ export function HeadersPage() {
                 })}
               </div>
             )}
-            <p className="mt-2 text-xs text-slate-500">Highlighted features are disabled for the whole origin.</p>
+            <p className="mt-2 text-xs text-slate-500">{t.headers.permissionsNote}</p>
           </Card>
 
           <Card>
-            <CardTitle>Cross-origin isolation</CardTitle>
+            <CardTitle>{t.headers.crossOrigin}</CardTitle>
             <div className="space-y-3">
               <label className="flex items-center justify-between gap-3 text-sm text-slate-300">
                 Cross-Origin-Opener-Policy
@@ -217,7 +219,7 @@ export function HeadersPage() {
       </div>
 
       <Card>
-        <CardTitle hint={`${headers.length} header${headers.length === 1 ? '' : 's'}`}>Output</CardTitle>
+        <CardTitle hint={t.headers.headerCount(headers.length)}>{t.headers.output}</CardTitle>
         <div className="mb-3 flex flex-wrap gap-1.5">
           {HEADER_FORMATS.map((entry) => (
             <button
@@ -235,10 +237,10 @@ export function HeadersPage() {
           ))}
         </div>
         {headers.length > 0 ? (
-          <CodeSnippet code={output} copyLabel="Copy config" />
+          <CodeSnippet code={output} copyLabel={t.headers.copyConfig} />
         ) : (
           <p className="rounded-lg border border-white/10 bg-slate-950/40 px-4 py-6 text-center text-sm text-slate-500">
-            Enable at least one header.
+            {t.headers.enableOne}
           </p>
         )}
       </Card>

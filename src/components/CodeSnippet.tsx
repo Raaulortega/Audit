@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useI18n } from '../i18n/I18nContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Copy } from 'lucide-react';
 
@@ -7,7 +8,9 @@ interface CodeSnippetProps {
   copyLabel?: string;
 }
 
-export function CodeSnippet({ code, copyLabel = 'Copy patch' }: CodeSnippetProps) {
+export function CodeSnippet({ code, copyLabel: customLabel }: CodeSnippetProps) {
+  const { t } = useI18n();
+  const copyLabel = customLabel ?? t.common.copyPatch;
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -46,7 +49,7 @@ export function CodeSnippet({ code, copyLabel = 'Copy patch' }: CodeSnippetProps
               className="flex items-center gap-1.5"
             >
               <Check className="h-3.5 w-3.5" />
-              Copied!
+              {t.common.copied}
             </motion.span>
           ) : (
             <motion.span

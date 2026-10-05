@@ -1,7 +1,11 @@
 export type SecretKind = 'hex' | 'base64url' | 'alphanumeric' | 'symbols';
 
+/** Stable ids; the UI translates them. */
+export type CrackScenario = 'online' | 'bcrypt' | 'sha256' | 'md5';
+export type PasswordWarning = 'breached' | 'repeated' | 'sequence' | 'year' | 'short' | 'singleClass';
+
 export interface CrackEstimate {
-  scenario: string;
+  scenario: CrackScenario;
   guessesPerSecond: number;
   seconds: number;
 }
@@ -12,8 +16,7 @@ export interface PasswordAnalysis {
   entropyBits: number;
   /** 0 (very weak) – 4 (very strong). */
   score: 0 | 1 | 2 | 3 | 4;
-  label: string;
-  warnings: string[];
+  warnings: PasswordWarning[];
   crackTimes: CrackEstimate[];
 }
 
@@ -37,10 +40,10 @@ const SEQUENCES = ['abcdefghijklmnopqrstuvwxyz', '0123456789', 'qwertyuiop', 'as
 
 /** Attack speeds for a single modern GPU rig; orders of magnitude matter, not exact figures. */
 const SCENARIOS: Array<Omit<CrackEstimate, 'seconds'>> = [
-  { scenario: 'Online login, rate-limited', guessesPerSecond: 10 },
-  { scenario: 'Offline, bcrypt (cost 12)', guessesPerSecond: 1e4 },
-  { scenario: 'Offline, SHA-256', guessesPerSecond: 1e10 },
-  { scenario: 'Offline, MD5 / NTLM', guessesPerSecond: 1e11 },
+  { scenario: 'online', guessesPerSecond: 10 },
+  { scenario: 'bcrypt', guessesPerSecond: 1e4 },
+  { scenario: 'sha256', guessesPerSecond: 1e10 },
+  { scenario: 'md5', guessesPerSecond: 1e11 },
 ];
 
 function charsetSizeOf(password: string): number {
@@ -68,7 +71,7 @@ function hasSequence(password: string): boolean {
  * It is an estimate, deliberately pessimistic for human-chosen passwords.
  */
 export function analyzePassword(password: string): PasswordAnalysis {
-  const warnings: string[] = [];
+  const warnings: PasswordWarning[] = [];
   const charsetSize = charsetSizeOf(password);
   let entropyBits = password.length * Math.log2(Math.max(charsetSize, 1));
 
@@ -81,35 +84,33 @@ export function analyzePassword(password: string): PasswordAnalysis {
     .replace(/0/g, 'o')
     .replace(/\$/g, 's');
   if (COMMON_PASSWORDS.has(password.toLowerCase()) || COMMON_PASSWORDS.has(deLeeted)) {
-    warnings.push('Appears in public breach wordlists — cracked instantly.');
+    warnings.push('breached');
     entropyBits = Math.min(entropyBits, 6);
   }
   if (/(.)\1{2,}/.test(password)) {
-    warnings.push('Contains repeated characters (e.g. "aaa").');
+    warnings.push('repeated');
     entropyBits *= 0.8;
   }
   if (hasSequence(password)) {
-    warnings.push('Contains a keyboard or alphabet sequence (e.g. "1234", "qwer").');
+    warnings.push('sequence');
     entropyBits *= 0.75;
   }
   if (/(19|20)\d{2}/.test(password)) {
-    warnings.push('Contains a year — a favourite of rule-based attacks.');
+    warnings.push('year');
     entropyBits -= 6;
   }
-  if (password.length > 0 && password.length < 12) warnings.push('Shorter than 12 characters.');
-  if (password.length > 0 && charsetSize <= 26) warnings.push('Uses a single character class.');
+  if (password.length > 0 && password.length < 12) warnings.push('short');
+  if (password.length > 0 && charsetSize <= 26) warnings.push('singleClass');
 
   entropyBits = Math.max(0, Math.round(entropyBits * 10) / 10);
   const score: PasswordAnalysis['score'] =
     entropyBits < 28 ? 0 : entropyBits < 40 ? 1 : entropyBits < 60 ? 2 : entropyBits < 80 ? 3 : 4;
-  const labels = ['Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
 
   return {
     length: password.length,
     charsetSize,
     entropyBits,
     score,
-    label: labels[score],
     warnings,
     // On average an attacker finds the password after searching half the space.
     crackTimes: SCENARIOS.map((scenario) => ({
@@ -119,24 +120,48 @@ export function analyzePassword(password: string): PasswordAnalysis {
   };
 }
 
-export function formatDuration(seconds: number): string {
-  if (seconds < 1) return 'instantly';
-  if (seconds > 3_153_600_000 * 1e6) return 'beyond the age of the universe';
-  const units: Array<[string, string, number]> = [
-    ['century', 'centuries', 3_153_600_000],
-    ['year', 'years', 31_536_000],
-    ['day', 'days', 86_400],
-    ['hour', 'hours', 3_600],
-    ['minute', 'minutes', 60],
-    ['second', 'seconds', 1],
-  ];
-  for (const [singular, plural, size] of units) {
+const DURATION_WORDS = {
+  en: {
+    locale: 'en-US',
+    instantly: 'instantly',
+    forever: 'beyond the age of the universe',
+    units: [
+      ['century', 'centuries'],
+      ['year', 'years'],
+      ['day', 'days'],
+      ['hour', 'hours'],
+      ['minute', 'minutes'],
+      ['second', 'seconds'],
+    ],
+  },
+  es: {
+    locale: 'es-ES',
+    instantly: 'al instante',
+    forever: 'más que la edad del universo',
+    units: [
+      ['siglo', 'siglos'],
+      ['año', 'años'],
+      ['día', 'días'],
+      ['hora', 'horas'],
+      ['minuto', 'minutos'],
+      ['segundo', 'segundos'],
+    ],
+  },
+} as const;
+const UNIT_SECONDS = [3_153_600_000, 31_536_000, 86_400, 3_600, 60, 1];
+
+export function formatDuration(seconds: number, lang: keyof typeof DURATION_WORDS = 'en'): string {
+  const words = DURATION_WORDS[lang];
+  if (seconds < 1) return words.instantly;
+  if (seconds > UNIT_SECONDS[0] * 1e6) return words.forever;
+  for (const [index, size] of UNIT_SECONDS.entries()) {
     if (seconds >= size) {
       const value = Math.floor(seconds / size);
-      return `${value.toLocaleString('en-US')} ${value === 1 ? singular : plural}`;
+      const [singular, plural] = words.units[index];
+      return `${value.toLocaleString(words.locale)} ${value === 1 ? singular : plural}`;
     }
   }
-  return 'instantly';
+  return words.instantly;
 }
 
 /** Uniform random index below `max` using rejection sampling (no modulo bias). */

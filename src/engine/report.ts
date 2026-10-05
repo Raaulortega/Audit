@@ -1,6 +1,6 @@
 import type { AnalysisResult, Finding, Severity } from './types';
 
-const TOOL_NAME = 'Config Security Audit';
+const TOOL_NAME = 'LocalAudit';
 const TOOL_VERSION = '0.2.0';
 const SEVERITY_ORDER: Severity[] = ['critical', 'medium', 'low'];
 const SARIF_LEVEL: Record<Severity, 'error' | 'warning' | 'note'> = {
