@@ -1,14 +1,18 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, History, Minus, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, ChevronRight, History, Minus, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
 import { Button, Card, CardTitle, PageHeader, buttonClass } from '../components/PageHeader';
-import { SeverityBadge } from '../components/SeverityBadge';
+import { FindingRows } from '../components/FindingsList';
 import { useAudit } from '../context/AuditContext';
 import { compareScans, type ScanSnapshot } from '../engine/history';
-import type { Finding } from '../engine/types';
+import type { Finding, Severity } from '../engine/types';
 import { useI18n } from '../i18n/I18nContext';
 
-function DiffList({
+const SEVERITY_RANK: Record<Severity, number> = { critical: 0, medium: 1, low: 2 };
+const bySeverity = (findings: Finding[]) => [...findings].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+
+function DiffSection({
   title,
   findings,
   tone,
@@ -21,25 +25,17 @@ function DiffList({
 }) {
   const { t } = useI18n();
   return (
-    <div>
-      <p className={`mb-2 flex items-center gap-1.5 text-footnote font-semibold ${tone}`}>
+    <section>
+      <h3 className={`mb-2 flex items-center gap-1.5 px-1 text-footnote font-semibold ${tone}`}>
         <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         {title} ({findings.length})
-      </p>
+      </h3>
       {findings.length === 0 ? (
-        <p className="text-footnote text-label-2">{t.common.none}</p>
+        <p className="rounded-[14px] bg-fill px-4 py-3 text-footnote text-label-2">{t.common.none}</p>
       ) : (
-        <ul className="space-y-2">
-          {findings.map((finding) => (
-            <li key={finding.id} className="flex items-center gap-2 text-footnote text-label">
-              <SeverityBadge severity={finding.severity} />
-              <span className="truncate">{finding.title}</span>
-              <span className="ml-auto shrink-0 font-mono text-caption text-label-2">{finding.sourceFile}</span>
-            </li>
-          ))}
-        </ul>
+        <FindingRows findings={bySeverity(findings)} className="rounded-[14px] bg-fill" />
       )}
-    </div>
+    </section>
   );
 }
 
@@ -47,6 +43,7 @@ export function HistoryPage() {
   const { history, activeSnapshotId, deleteSnapshot, clearHistory } = useAudit();
   const { t, to } = useI18n();
   const [selected, setSelected] = useState<[string, string] | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const labelOf = (snapshot: ScanSnapshot) => snapshot.label || t.history.autoLabel(snapshot.fileNames);
   const formatDate = (iso: string) =>
@@ -106,48 +103,83 @@ export function HistoryPage() {
       <ul className="card divide-y divide-separator overflow-hidden">
         {history.map((snapshot) => {
           const picked = selected?.includes(snapshot.id);
+          const expanded = expandedId === snapshot.id;
           const label = labelOf(snapshot);
+          const panelId = `snapshot-${snapshot.id}`;
           return (
-            <li key={snapshot.id} className={`flex min-h-16 items-center gap-3 py-2 pl-4 pr-1.5 ${picked ? 'bg-tint-soft' : ''}`}>
-              <input
-                type="checkbox"
-                checked={Boolean(picked)}
-                onChange={() => toggle(snapshot.id)}
-                aria-label={t.history.select(label)}
-                className="h-5 w-5 shrink-0 cursor-pointer accent-tint"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-2 text-subhead font-medium text-label">
-                  <span className="truncate">{label}</span>
-                  {snapshot.id === activeSnapshotId && (
-                    <span className="shrink-0 rounded-full bg-tint-soft px-2 py-0.5 text-caption2 font-semibold text-tint">
-                      {t.history.live}
-                    </span>
-                  )}
-                </p>
-                <p className="text-footnote text-label-2">
-                  {formatDate(snapshot.savedAt)} · {t.history.files(snapshot.fileNames.length)}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span
-                  className="hidden gap-2 text-footnote font-semibold tabular-nums sm:flex"
-                  aria-label={`${t.common.severity.critical} ${snapshot.counts.critical}, ${t.common.severity.medium} ${snapshot.counts.medium}, ${t.common.severity.low} ${snapshot.counts.low}`}
+            <li key={snapshot.id} className={picked ? 'bg-tint-soft' : ''}>
+              <div className="flex min-h-16 items-center gap-1 py-1.5 pl-4 pr-1.5">
+                <input
+                  type="checkbox"
+                  checked={Boolean(picked)}
+                  onChange={() => toggle(snapshot.id)}
+                  aria-label={t.history.select(label)}
+                  className="mr-2 h-5 w-5 shrink-0 cursor-pointer accent-tint"
+                />
+                {/* The whole row opens the scan, so its findings can be read and fixed again. */}
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(expanded ? null : snapshot.id)}
+                  aria-expanded={expanded}
+                  aria-controls={panelId}
+                  aria-label={t.history.showFindings(label)}
+                  className="flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-[12px] px-2 text-left transition-colors hover:bg-fill/60"
                 >
-                  <span className="text-critical">{snapshot.counts.critical}</span>
-                  <span className="text-medium">{snapshot.counts.medium}</span>
-                  <span className="text-low">{snapshot.counts.low}</span>
-                </span>
-                <span className="w-10 text-right font-rounded text-title3 font-semibold tabular-nums text-label">{snapshot.score}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2 text-subhead font-medium text-label">
+                      <span className="truncate">{label}</span>
+                      {snapshot.id === activeSnapshotId && (
+                        <span className="shrink-0 rounded-full bg-tint-soft px-2 py-0.5 text-caption2 font-semibold text-tint">
+                          {t.history.live}
+                        </span>
+                      )}
+                    </span>
+                    <span className="block text-footnote text-label-2">
+                      {formatDate(snapshot.savedAt)} · {t.history.files(snapshot.fileNames.length)}
+                    </span>
+                  </span>
+                  <span className="hidden shrink-0 gap-2 text-footnote font-semibold tabular-nums sm:flex" aria-hidden="true">
+                    <span className="text-critical">{snapshot.counts.critical}</span>
+                    <span className="text-medium">{snapshot.counts.medium}</span>
+                    <span className="text-low">{snapshot.counts.low}</span>
+                  </span>
+                  <span className="w-9 shrink-0 text-right font-rounded text-title3 font-semibold tabular-nums text-label">
+                    {snapshot.score}
+                  </span>
+                  <ChevronRight
+                    className={`h-4 w-4 shrink-0 text-label-3 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
+                    aria-hidden="true"
+                  />
+                </button>
                 <button
                   type="button"
                   onClick={() => deleteSnapshot(snapshot.id)}
                   aria-label={t.history.delete(label)}
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-label-3 transition-colors hover:bg-critical-soft hover:text-critical lg:h-9 lg:w-9"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-label-3 transition-colors hover:bg-critical-soft hover:text-critical lg:h-9 lg:w-9"
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
+              <AnimatePresence initial={false}>
+                {expanded && (
+                  <motion.div
+                    id={panelId}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-3 pb-3 sm:px-4 sm:pb-4">
+                      {snapshot.findings.length === 0 ? (
+                        <p className="rounded-[14px] bg-fill px-4 py-3 text-footnote text-label-2">{t.history.noFindings}</p>
+                      ) : (
+                        <FindingRows findings={bySeverity(snapshot.findings)} className="rounded-[14px] bg-fill" />
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </li>
           );
         })}
@@ -183,10 +215,10 @@ export function HistoryPage() {
               {labelOf(comparison.after)} · {comparison.after.score}
             </span>
           </p>
-          <div className="grid gap-6 sm:grid-cols-3">
-            <DiffList title={t.history.fixed} findings={comparison.diff.fixed} tone="text-tint" Icon={Minus} />
-            <DiffList title={t.history.introduced} findings={comparison.diff.introduced} tone="text-critical" Icon={Plus} />
-            <DiffList title={t.history.stillOpen} findings={comparison.diff.unchanged} tone="text-label-2" Icon={ArrowRight} />
+          <div className="space-y-5">
+            <DiffSection title={t.history.introduced} findings={comparison.diff.introduced} tone="text-critical" Icon={Plus} />
+            <DiffSection title={t.history.fixed} findings={comparison.diff.fixed} tone="text-tint" Icon={Minus} />
+            <DiffSection title={t.history.stillOpen} findings={comparison.diff.unchanged} tone="text-label-2" Icon={ArrowRight} />
           </div>
         </Card>
       )}

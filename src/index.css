@@ -4,81 +4,104 @@
   LocalAudit design system, built on Apple's Human Interface Guidelines.
 
   - Two appearances that follow the system setting (no in-app switch).
-  - Colors are named by role. Every text color is at least 4.5:1 on the surface it sits on:
-      label-2  #6C6C70 on #FFFFFF 5.2:1 · on #F2F2F7 4.7:1 | #AEAEB2 on #1C1C1E 7.7:1
-      tint     #1A7F45 on #FFFFFF 5.0:1 · white on tint 5.0:1 | #30D158 on #1C1C1E 8.4:1
-      critical #D70015 5.4:1 | #FF6961 6.0:1   medium #B25000 5.2:1 | #FFB340 9.5:1
-      low      #0040DD 7.6:1 | #409CFF 6.0:1
+  - Colors are named by role. Text colors are at least 4.5:1 on the surfaces they sit on,
+    including the translucent materials over the brightest part of the wallpaper.
   - label-3 is for glyphs and placeholders only, never for text people must read.
-  - Glass belongs to the floating functional layer (sidebar, bars, sheets), never to content.
+  - Two layers:
+      content layer    → wallpaper + `.card` (a thin standard material: blur, no refraction)
+      functional layer → `.glass` (Liquid Glass approximation: refraction, specular rim)
 */
 
 :root {
   color-scheme: light dark;
 
-  --bg: #f2f2f7;
-  --surface: #ffffff;
+  --bg: #eef1f4;
+  --surface: rgb(255 255 255 / 0.62);
   --surface-raised: #ffffff;
   --fill: rgb(118 118 128 / 0.12);
   --fill-strong: rgb(118 118 128 / 0.2);
   --label: #1d1d1f;
-  --label-2: #6c6c70;
+  --label-2: #5f5f64;
   --label-3: #8e8e93;
   --separator: rgb(60 60 67 / 0.16);
-  --tint: #1a7f45;
+  --tint: #136a3a;
   --on-tint: #ffffff;
-  --tint-soft: rgb(26 127 69 / 0.1);
-  --critical: #d70015;
-  --critical-soft: rgb(215 0 21 / 0.08);
-  --medium: #b25000;
-  --medium-soft: rgb(178 80 0 / 0.09);
+  --tint-soft: rgb(19 106 58 / 0.12);
+  --critical: #c40013;
+  --critical-soft: rgb(215 0 21 / 0.1);
+  --medium: #9e4700;
+  --medium-soft: rgb(178 80 0 / 0.11);
   --low: #0040dd;
-  --low-soft: rgb(0 64 221 / 0.08);
+  --low-soft: rgb(0 64 221 / 0.09);
   --varies: #8944ab;
-  --code-bg: #f6f6f8;
+  --code-bg: rgb(246 246 248 / 0.75);
 
-  --glass-bg: rgb(250 250 252 / 0.72);
+  /* Still, colorful light in the content layer. The glass needs something to bend. */
+  --wallpaper:
+    radial-gradient(55% 45% at 8% 0%, rgb(52 199 89 / 0.42), transparent 70%),
+    radial-gradient(45% 40% at 95% 8%, rgb(48 176 199 / 0.38), transparent 70%),
+    radial-gradient(50% 45% at 75% 92%, rgb(0 122 255 / 0.24), transparent 70%),
+    radial-gradient(40% 35% at 10% 85%, rgb(175 82 222 / 0.2), transparent 70%), #eef1f4;
+
+  --glass-bg: linear-gradient(135deg, rgb(255 255 255 / 0.6), rgb(255 255 255 / 0.32));
   --glass-border: rgb(255 255 255 / 0.7);
-  --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.06);
-  --sheen: linear-gradient(180deg, rgb(26 127 69 / 0.16) 0%, rgb(48 176 199 / 0.08) 45%, transparent 100%);
+  --glass-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(255 255 255 / 0.4), inset 0 0 22px rgb(255 255 255 / 0.3),
+    0 12px 40px rgb(0 0 0 / 0.12), 0 1px 3px rgb(0 0 0 / 0.08);
+  --glass-sheen: linear-gradient(160deg, rgb(255 255 255 / 0.55) 0%, rgb(255 255 255 / 0) 38%);
+
+  --material-border: rgb(255 255 255 / 0.75);
+  --material-shadow: inset 0 1px 0 rgb(255 255 255 / 0.85), 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.05);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #000000;
-    --surface: #1c1c1e;
+    --surface: rgb(36 36 40 / 0.55);
     --surface-raised: #2c2c2e;
     --fill: rgb(118 118 128 / 0.24);
     --fill-strong: rgb(118 118 128 / 0.36);
     --label: #f5f5f7;
-    --label-2: #aeaeb2;
+    --label-2: #b4b4ba;
     --label-3: #8e8e93;
-    --separator: rgb(84 84 88 / 0.55);
+    --separator: rgb(140 140 150 / 0.28);
     --tint: #30d158;
     --on-tint: #000000;
-    --tint-soft: rgb(48 209 88 / 0.14);
+    --tint-soft: rgb(48 209 88 / 0.16);
     --critical: #ff6961;
-    --critical-soft: rgb(255 105 97 / 0.14);
+    --critical-soft: rgb(255 105 97 / 0.16);
     --medium: #ffb340;
-    --medium-soft: rgb(255 179 64 / 0.14);
-    --low: #409cff;
-    --low-soft: rgb(64 156 255 / 0.14);
+    --medium-soft: rgb(255 179 64 / 0.16);
+    --low: #5aa9ff;
+    --low-soft: rgb(64 156 255 / 0.16);
     --varies: #da8fff;
-    --code-bg: #141416;
+    --code-bg: rgb(10 10 12 / 0.6);
 
-    --glass-bg: rgb(30 30 32 / 0.66);
-    --glass-border: rgb(255 255 255 / 0.1);
-    --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);
-    --sheen: linear-gradient(180deg, rgb(48 209 88 / 0.18) 0%, rgb(64 156 255 / 0.08) 45%, transparent 100%);
+    --wallpaper:
+      radial-gradient(55% 45% at 8% 0%, rgb(48 209 88 / 0.3), transparent 70%),
+      radial-gradient(45% 40% at 95% 8%, rgb(64 200 224 / 0.24), transparent 70%),
+      radial-gradient(50% 45% at 75% 92%, rgb(10 132 255 / 0.24), transparent 70%),
+      radial-gradient(40% 35% at 10% 85%, rgb(191 90 242 / 0.2), transparent 70%), #000000;
+
+    --glass-bg: linear-gradient(135deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0.05));
+    --glass-border: rgb(255 255 255 / 0.18);
+    --glass-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.28), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 22px rgb(255 255 255 / 0.05),
+      0 12px 40px rgb(0 0 0 / 0.55), 0 1px 3px rgb(0 0 0 / 0.4);
+    --glass-sheen: linear-gradient(160deg, rgb(255 255 255 / 0.14) 0%, rgb(255 255 255 / 0) 38%);
+
+    --material-border: rgb(255 255 255 / 0.1);
+    --material-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 8px 24px rgb(0 0 0 / 0.35);
   }
 }
 
-/* Increase Contrast: stronger separators, labels and an almost opaque functional layer. */
+/* Increase Contrast: near-opaque surfaces, stronger separators and labels. */
 @media (prefers-contrast: more) {
   :root {
     --label-2: #3a3a3c;
     --separator: rgb(60 60 67 / 0.4);
     --tint: #0f5c30;
+    --surface: rgb(255 255 255 / 0.96);
     --glass-bg: rgb(250 250 252 / 0.97);
     --glass-border: rgb(60 60 67 / 0.4);
   }
@@ -88,6 +111,7 @@
     --label-2: #d1d1d6;
     --separator: rgb(140 140 145 / 0.7);
     --tint: #5ee07f;
+    --surface: rgb(28 28 30 / 0.97);
     --glass-bg: rgb(28 28 30 / 0.97);
     --glass-border: rgb(255 255 255 / 0.35);
   }
@@ -148,7 +172,7 @@
   --text-caption2: 0.6875rem;
   --text-caption2--line-height: 0.8125rem;
 
-  --radius-card: 1.25rem;
+  --radius-card: 1.375rem;
   --radius-control: 0.75rem;
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -168,7 +192,8 @@
   }
 
   body {
-    background-color: var(--bg);
+    /* The wallpaper itself is a fixed layer in AmbientBackground (iOS ignores background-attachment: fixed). */
+    background: var(--bg);
     color: var(--label);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -189,21 +214,58 @@
   textarea::placeholder {
     color: var(--label-3);
   }
+
+  select option {
+    background: var(--surface-raised);
+    color: var(--label);
+  }
 }
 
 @layer components {
-  /* Liquid Glass approximation for the functional layer only. */
+  /*
+    Liquid Glass approximation for the functional layer only (sidebar, bars, sheets, banner).
+    ::before adds the specular sheen; on Chromium `.glass-refraction` also bends the backdrop
+    through the SVG filter rendered in AppLayout.
+  */
   .glass {
+    position: relative;
+    isolation: isolate;
     background: var(--glass-bg);
-    -webkit-backdrop-filter: blur(28px) saturate(1.6);
-    backdrop-filter: blur(28px) saturate(1.6);
+    -webkit-backdrop-filter: blur(16px) saturate(1.9) brightness(1.04);
+    backdrop-filter: blur(16px) saturate(1.9) brightness(1.04);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
   }
+  .glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--glass-sheen);
+    pointer-events: none;
+  }
+  .glass-refraction .glass {
+    backdrop-filter: url(#liquid-glass) blur(12px) saturate(1.9) brightness(1.04);
+  }
 
-  /* Opaque content surface (inset grouped style). */
+  /* Thicker glass for text-heavy surfaces (sheets): more fill, same rim. */
+  .glass-thick {
+    --glass-bg: linear-gradient(135deg, rgb(255 255 255 / 0.86), rgb(255 255 255 / 0.72));
+  }
+  @media (prefers-color-scheme: dark) {
+    .glass-thick {
+      --glass-bg: linear-gradient(135deg, rgb(44 44 48 / 0.88), rgb(30 30 32 / 0.8));
+    }
+  }
+
+  /* Content surface: a thin standard material. Blur only, no refraction. */
   .card {
     background: var(--surface);
+    -webkit-backdrop-filter: blur(24px) saturate(1.7);
+    backdrop-filter: blur(24px) saturate(1.7);
+    border: 1px solid var(--material-border);
+    box-shadow: var(--material-shadow);
     border-radius: var(--radius-card);
   }
 
@@ -220,7 +282,7 @@
   .field:focus {
     outline: none;
     border-color: var(--tint);
-    background: var(--surface);
+    background: var(--surface-raised);
   }
 
   /* Horizontal chip rows stay scrollable without a visible scrollbar. */
@@ -232,12 +294,29 @@
   }
 }
 
-/* Reduce Transparency: opaque functional layer. */
+/* Reduce Transparency: every material becomes opaque, refraction off. */
 @media (prefers-reduced-transparency: reduce) {
-  .glass {
+  :root {
+    --surface: #ffffff;
+  }
+  .glass,
+  .glass-refraction .glass {
     background: var(--surface-raised);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
+  }
+  .card {
+    background: var(--surface-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .glass::before {
+    display: none;
+  }
+}
+@media (prefers-reduced-transparency: reduce) and (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1c1c1e;
   }
 }
 

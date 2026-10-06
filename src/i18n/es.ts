@@ -305,6 +305,8 @@ export const es: Messages = {
     fixed: 'Corregidos',
     introduced: 'Nuevos',
     stillOpen: 'Siguen abiertos',
+    showFindings: (label: string) => `Ver hallazgos de ${label}`,
+    noFindings: 'Este escaneo no tuvo hallazgos.',
   },
   secrets: {
     eyebrow: 'Herramientas',

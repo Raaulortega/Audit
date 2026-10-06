@@ -303,6 +303,8 @@ export const en = {
     fixed: 'Fixed',
     introduced: 'Introduced',
     stillOpen: 'Still open',
+    showFindings: (label: string) => `Show findings of ${label}`,
+    noFindings: 'This scan had no findings.',
   },
   secrets: {
     eyebrow: 'Toolkit',

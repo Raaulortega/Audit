@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, AlertTriangle, ChevronRight, Info, Search, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { CodeSnippet } from './CodeSnippet';
@@ -49,9 +49,80 @@ export function SearchField({
   );
 }
 
+/** Expandable finding rows: tap a row to see what is wrong and how to fix it. */
+export function FindingRows({ findings, className = 'card' }: { findings: Finding[]; className?: string }) {
+  const { t } = useI18n();
+  const listId = useId();
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+
+  const toggleOpen = (id: string) => {
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <ul className={`${className} divide-y divide-separator overflow-hidden`}>
+      {findings.map((finding) => {
+        const isOpen = openIds.has(finding.id);
+        const { Icon, color } = SEVERITY_ICON[finding.severity];
+        const panelId = `${listId}-${finding.id}`;
+        return (
+          <li key={finding.id}>
+            <button
+              type="button"
+              onClick={() => toggleOpen(finding.id)}
+              aria-expanded={isOpen}
+              aria-controls={panelId}
+              className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-fill/50"
+            >
+              <Icon className={`h-5 w-5 shrink-0 ${color}`} aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-subhead font-medium text-label">{finding.title}</span>
+                <span className="mt-0.5 block truncate text-footnote text-label-2">
+                  {t.common.severity[finding.severity]} · {finding.sourceFile}
+                  {finding.line ? `:${finding.line}` : ''}
+                </span>
+              </span>
+              <ChevronRight
+                className={`h-4 w-4 shrink-0 text-label-3 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+                aria-hidden="true"
+              />
+            </button>
+            <AnimatePresence initial={false}>
+              {isOpen && (
+                <motion.div
+                  id={panelId}
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-3 px-4 pb-4 sm:pl-12">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <SeverityBadge severity={finding.severity} />
+                      <span className="rounded-md bg-fill px-1.5 py-0.5 text-caption2 text-label-2">{finding.category}</span>
+                      {finding.references && <ReferenceBadges references={finding.references} />}
+                    </div>
+                    <p className="text-subhead text-label-2">{finding.description}</p>
+                    <CodeSnippet code={finding.fixSnippet} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function FindingsList({ findings }: FindingsListProps) {
   const { t } = useI18n();
-  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
   const [active, setActive] = useState<Record<Severity, boolean>>(() => emptyActiveMap(true));
   const [query, setQuery] = useState('');
 
@@ -79,15 +150,6 @@ export function FindingsList({ findings }: FindingsListProps) {
     setActive((prev) => ({ ...prev, [severity]: !prev[severity] }));
   };
 
-  const toggleOpen = (id: string) => {
-    setOpenIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
   if (findings.length === 0) {
     return (
       <div className="card flex items-center gap-3 px-5 py-6 text-subhead text-label-2">
@@ -107,59 +169,7 @@ export function FindingsList({ findings }: FindingsListProps) {
       {visibleFindings.length === 0 ? (
         <p className="card px-5 py-8 text-center text-subhead text-label-2">{t.findings.noMatch}</p>
       ) : (
-        <ul className="card divide-y divide-separator overflow-hidden">
-          {visibleFindings.map((finding) => {
-            const isOpen = openIds.has(finding.id);
-            const { Icon, color } = SEVERITY_ICON[finding.severity];
-            const panelId = `finding-${finding.id}`;
-            return (
-              <li key={finding.id}>
-                <button
-                  type="button"
-                  onClick={() => toggleOpen(finding.id)}
-                  aria-expanded={isOpen}
-                  aria-controls={panelId}
-                  className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-fill/50"
-                >
-                  <Icon className={`h-5 w-5 shrink-0 ${color}`} aria-hidden="true" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-subhead font-medium text-label">{finding.title}</span>
-                    <span className="mt-0.5 block truncate text-footnote text-label-2">
-                      {t.common.severity[finding.severity]} · {finding.sourceFile}
-                      {finding.line ? `:${finding.line}` : ''}
-                    </span>
-                  </span>
-                  <ChevronRight
-                    className={`h-4 w-4 shrink-0 text-label-3 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
-                    aria-hidden="true"
-                  />
-                </button>
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      id={panelId}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-                      className="overflow-hidden"
-                    >
-                      <div className="space-y-3 px-4 pb-4 sm:pl-12">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <SeverityBadge severity={finding.severity} />
-                          <span className="rounded-md bg-fill px-1.5 py-0.5 text-caption2 text-label-2">{finding.category}</span>
-                          {finding.references && <ReferenceBadges references={finding.references} />}
-                        </div>
-                        <p className="text-subhead text-label-2">{finding.description}</p>
-                        <CodeSnippet code={finding.fixSnippet} />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </li>
-            );
-          })}
-        </ul>
+        <FindingRows findings={visibleFindings} />
       )}
     </div>
   );

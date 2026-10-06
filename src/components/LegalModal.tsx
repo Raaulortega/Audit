@@ -47,7 +47,7 @@ export function LegalModal({ type, onClose }: LegalModalProps) {
             exit={{ opacity: 0, y: 40 }}
             transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             onClick={(event) => event.stopPropagation()}
-            className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-surface-raised px-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-2 shadow-2xl sm:rounded-[28px] sm:pb-6 sm:pt-5"
+            className="max-h-[85vh] w-full max-w-lg overflow-y-auto glass glass-thick rounded-t-[28px] px-6 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-2 shadow-2xl sm:rounded-[28px] sm:pb-6 sm:pt-5"
           >
             <div aria-hidden="true" className="mx-auto mb-3 h-[5px] w-9 rounded-full bg-fill-strong sm:hidden" />
             <div className="mb-4 flex items-center justify-between gap-4">

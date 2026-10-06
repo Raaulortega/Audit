@@ -8,7 +8,7 @@ import { useI18n } from '../i18n/I18nContext';
 
 function Stat({ value, label, tone = 'text-label' }: { value: string | number; label: string; tone?: string }) {
   return (
-    <div className="flex flex-col bg-surface px-3 py-4 text-center">
+    <div className="card flex flex-col px-3 py-4 text-center">
       <dd className={`font-rounded text-title1 font-semibold tabular-nums ${tone}`}>{value}</dd>
       <dt className="order-first text-footnote text-label-2">{label}</dt>
     </div>
@@ -48,7 +48,7 @@ export function HomePage() {
       </section>
 
       {(hasScan || history.length > 0) && (
-        <dl className="card grid grid-cols-2 gap-px overflow-hidden bg-separator sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat value={hasScan ? result.score : '—'} label={t.home.stats.lastScore} />
           <Stat
             value={result.counts.critical}

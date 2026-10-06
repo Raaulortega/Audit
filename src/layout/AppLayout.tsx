@@ -196,7 +196,7 @@ function ToolsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
             exit={{ y: '100%' }}
             transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
             onClick={(event) => event.stopPropagation()}
-            className="glass mx-2 mb-2 w-full rounded-[32px] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2"
+            className="glass glass-thick mx-2 mb-2 w-full rounded-[32px] px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2"
           >
             <div aria-hidden="true" className="mx-auto mb-2 h-[5px] w-9 rounded-full bg-fill-strong" />
             <div className="mb-2 flex items-center justify-between px-2">
