@@ -1,7 +1,6 @@
-import { useRef, useState } from 'react';
-import { useI18n } from '../i18n/I18nContext';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
+import { useI18n } from '../i18n/I18nContext';
 
 interface CodeSnippetProps {
   code: string;
@@ -14,11 +13,13 @@ export function CodeSnippet({ code, copyLabel: customLabel }: CodeSnippetProps) 
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
+  useEffect(() => () => clearTimeout(timeoutRef.current), []);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => setCopied(false), 1600);
     } catch {
       // clipboard access denied - nothing to recover, user can select text manually
@@ -26,47 +27,20 @@ export function CodeSnippet({ code, copyLabel: customLabel }: CodeSnippetProps) 
   };
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-white/10 bg-slate-950/80">
-      <motion.button
-        type="button"
-        onClick={handleCopy}
-        whileTap={{ scale: 0.92 }}
-        className={`absolute right-2 top-2 flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-          copied
-            ? 'bg-emerald-400/15 text-emerald-300'
-            : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-emerald-300'
-        }`}
-        aria-label={copyLabel}
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          {copied ? (
-            <motion.span
-              key="copied"
-              initial={{ opacity: 0, scale: 0.6 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.6 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center gap-1.5"
-            >
-              <Check className="h-3.5 w-3.5" />
-              {t.common.copied}
-            </motion.span>
-          ) : (
-            <motion.span
-              key="copy"
-              initial={{ opacity: 0, scale: 0.6 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.6 }}
-              transition={{ duration: 0.15 }}
-              className="flex items-center gap-1.5"
-            >
-              <Copy className="h-3.5 w-3.5" />
-              {copyLabel}
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </motion.button>
-      <pre className="overflow-x-auto p-3 pr-28 font-mono text-xs text-slate-200">{code}</pre>
+    <div className="overflow-hidden rounded-[14px] border border-separator bg-code">
+      <div className="flex items-center justify-end border-b border-separator px-1.5 py-1">
+        <button
+          type="button"
+          onClick={handleCopy}
+          className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-footnote font-medium transition-colors ${
+            copied ? 'text-tint' : 'text-label-2 hover:bg-fill hover:text-label'
+          }`}
+        >
+          {copied ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
+          <span aria-live="polite">{copied ? t.common.copied : copyLabel}</span>
+        </button>
+      </div>
+      <pre className="overflow-x-auto p-3.5 font-mono text-footnote leading-relaxed text-label">{code}</pre>
     </div>
   );
 }

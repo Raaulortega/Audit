@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Eye, EyeOff, LockKeyhole, RefreshCw } from 'lucide-react';
-import { Button, Card, CardTitle, PageHeader } from '../components/PageHeader';
+import { Button, Card, CardTitle, PageHeader, Segmented } from '../components/PageHeader';
 import { CodeSnippet } from '../components/CodeSnippet';
 import {
   analyzePassword,
@@ -13,20 +13,50 @@ import {
 } from '../engine/passwordLab';
 import { useI18n } from '../i18n/I18nContext';
 
-const STRENGTH_COLORS = ['#f87171', '#fb923c', '#fbbf24', '#34d399', '#10b981'];
+// Strength 0-4 mapped onto the semantic palette, so "weak" and "critical" look the same everywhere.
+const STRENGTH_COLORS = ['var(--critical)', 'var(--critical)', 'var(--medium)', 'var(--tint)', 'var(--tint)'];
 const SECRET_KINDS: SecretKind[] = ['base64url', 'hex', 'alphanumeric', 'symbols'];
+const SEPARATORS = ['-', '.', '_', ' '] as const;
 
 function StrengthMeter({ score }: { score: number }) {
   return (
-    <div className="flex gap-1.5">
+    <div className="flex gap-1.5" aria-hidden="true">
       {[0, 1, 2, 3, 4].map((segment) => (
         <div
           key={segment}
           className="h-1.5 flex-1 rounded-full transition-colors"
-          style={{ backgroundColor: segment <= score ? STRENGTH_COLORS[score] : 'rgba(255,255,255,0.1)' }}
+          style={{ backgroundColor: segment <= score ? STRENGTH_COLORS[score] : 'var(--fill-strong)' }}
         />
       ))}
     </div>
+  );
+}
+
+function RangeField({
+  label,
+  min,
+  max,
+  value,
+  onChange,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="mb-4 block text-footnote font-medium text-label-2">
+      {label}
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="mt-2 h-6 w-full cursor-pointer accent-tint"
+      />
+    </label>
   );
 }
 
@@ -47,48 +77,45 @@ function StrengthChecker() {
           placeholder={t.passwords.placeholder}
           aria-label={t.passwords.aria}
           autoComplete="off"
-          className="w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 pr-10 font-mono text-sm text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
+          className="field h-11 pl-3 pr-12 font-mono text-callout"
         />
         <button
           type="button"
           onClick={() => setShow((value) => !value)}
           aria-label={show ? t.passwords.hide : t.passwords.show}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-emerald-300"
+          aria-pressed={show}
+          className="absolute right-0.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-label-2 hover:text-label"
         >
-          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {show ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
         </button>
       </div>
 
       {password.length > 0 && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-4" aria-live="polite">
           <StrengthMeter score={analysis.score} />
-          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-subhead">
             <span className="font-semibold" style={{ color: STRENGTH_COLORS[analysis.score] }}>
               {t.passwords.labels[analysis.score]}
             </span>
-            <span className="text-slate-400">
-              {t.passwords.bitsChars(analysis.entropyBits, analysis.length)}
-            </span>
+            <span className="text-footnote text-label-2">{t.passwords.bitsChars(analysis.entropyBits, analysis.length)}</span>
           </div>
 
           <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {t.passwords.timeToGuess}
-            </p>
-            <ul className="space-y-1">
+            <p className="mb-1.5 text-footnote font-semibold text-label-2">{t.passwords.timeToGuess}</p>
+            <dl className="divide-y divide-separator overflow-hidden rounded-[14px] bg-fill">
               {analysis.crackTimes.map((estimate) => (
-                <li key={estimate.scenario} className="flex justify-between gap-3 text-xs">
-                  <span className="text-slate-400">{t.passwords.scenarios[estimate.scenario]}</span>
-                  <span className="font-mono text-slate-200">{formatDuration(estimate.seconds, lang)}</span>
-                </li>
+                <div key={estimate.scenario} className="flex justify-between gap-3 px-3.5 py-2.5 text-footnote">
+                  <dt className="text-label-2">{t.passwords.scenarios[estimate.scenario]}</dt>
+                  <dd className="font-mono font-medium text-label">{formatDuration(estimate.seconds, lang)}</dd>
+                </div>
               ))}
-            </ul>
+            </dl>
           </div>
 
           {analysis.warnings.length > 0 && (
-            <ul className="space-y-1 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200/90">
+            <ul className="list-disc space-y-1 rounded-[14px] bg-medium-soft py-3 pl-8 pr-3.5 text-footnote text-label">
               {analysis.warnings.map((warning) => (
-                <li key={warning}>• {t.passwords.warnings[warning]}</li>
+                <li key={warning}>{t.passwords.warnings[warning]}</li>
               ))}
             </ul>
           )}
@@ -111,47 +138,36 @@ function SecretGenerator() {
   return (
     <Card>
       <CardTitle hint={t.passwords.entropy(secretEntropyBits(kind, length))}>{t.passwords.generator}</CardTitle>
-      <p className="mb-3 text-xs text-slate-500">
-        {t.passwords.generatorBefore}<code className="text-slate-300">crypto.getRandomValues</code>{t.passwords.generatorAfter}
+      <p className="mb-4 text-footnote text-label-2">
+        {t.passwords.generatorBefore}
+        <code className="font-mono text-label">crypto.getRandomValues</code>
+        {t.passwords.generatorAfter}
       </p>
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {SECRET_KINDS.map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => {
-              setKind(option);
-              regenerate(option, length);
-            }}
-            className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-              kind === option
-                ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-300'
-                : 'border-white/10 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {t.passwords.kinds[option]}
-          </button>
-        ))}
-      </div>
-      <label className="mb-3 block text-xs text-slate-400">
-        {t.passwords.length(length)}
-        <input
-          type="range"
-          min={8}
-          max={128}
-          value={length}
-          onChange={(event) => {
-            const next = Number(event.target.value);
-            setLength(next);
-            regenerate(kind, next);
+      <div className="mb-4">
+        <Segmented
+          label={t.passwords.generator}
+          options={SECRET_KINDS.map((option) => ({ id: option, label: t.passwords.kinds[option] }))}
+          value={kind}
+          onChange={(option) => {
+            setKind(option);
+            regenerate(option, length);
           }}
-          className="mt-1 w-full accent-emerald-500"
         />
-      </label>
+      </div>
+      <RangeField
+        label={t.passwords.length(length)}
+        min={8}
+        max={128}
+        value={length}
+        onChange={(next) => {
+          setLength(next);
+          regenerate(kind, next);
+        }}
+      />
       <CodeSnippet code={value} copyLabel={t.passwords.copySecret} />
       <div className="mt-3">
-        <Button variant="primary" onClick={() => regenerate()}>
-          <RefreshCw className="h-4 w-4" />
+        <Button onClick={() => regenerate()}>
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
           {t.common.regenerate}
         </Button>
       </div>
@@ -162,58 +178,46 @@ function SecretGenerator() {
 function PassphraseGenerator() {
   const { t } = useI18n();
   const [words, setWords] = useState(5);
-  const [separator, setSeparator] = useState('-');
+  const [separator, setSeparator] = useState<(typeof SEPARATORS)[number]>('-');
   const [value, setValue] = useState('');
   useEffect(() => setValue(generatePassphrase(5, '-')), []);
 
-  const regenerate = (nextWords = words, nextSeparator = separator) =>
+  const regenerate = (nextWords = words, nextSeparator: string = separator) =>
     setValue(generatePassphrase(nextWords, nextSeparator));
 
   return (
     <Card>
       <CardTitle hint={t.passwords.passphraseBits(passphraseEntropyBits(words))}>{t.passwords.passphrase}</CardTitle>
-      <p className="mb-3 text-xs text-slate-500">
-        {t.passwords.passphraseIntro}
-      </p>
-      <label className="mb-3 block text-xs text-slate-400">
-        {t.passwords.words(words)}
-        <input
-          type="range"
-          min={3}
-          max={10}
-          value={words}
-          onChange={(event) => {
-            const next = Number(event.target.value);
-            setWords(next);
-            regenerate(next, separator);
+      <p className="mb-4 text-footnote text-label-2">{t.passwords.passphraseIntro}</p>
+      <RangeField
+        label={t.passwords.words(words)}
+        min={3}
+        max={10}
+        value={words}
+        onChange={(next) => {
+          setWords(next);
+          regenerate(next, separator);
+        }}
+      />
+      <div className="mb-4 w-48">
+        <Segmented
+          label={t.passwords.separator('')}
+          options={SEPARATORS.map((option) => ({
+            id: option,
+            label: <span className="font-mono">{option === ' ' ? '␣' : option}</span>,
+            ariaLabel: t.passwords.separator(option === ' ' ? t.passwords.space : option),
+          }))}
+          value={separator}
+          onChange={(option) => {
+            setSeparator(option);
+            regenerate(words, option);
           }}
-          className="mt-1 w-full accent-emerald-500"
         />
-      </label>
-      <div className="mb-3 flex gap-1.5">
-        {['-', '.', '_', ' '].map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => {
-              setSeparator(option);
-              regenerate(words, option);
-            }}
-            aria-label={t.passwords.separator(option === ' ' ? t.passwords.space : option)}
-            className={`h-8 w-8 rounded-lg border text-xs transition-colors ${
-              separator === option
-                ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-300'
-                : 'border-white/10 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {option === ' ' ? '␣' : option}
-          </button>
-        ))}
       </div>
       <CodeSnippet code={value} copyLabel={t.passwords.copyPassphrase} />
       <div className="mt-3">
-        <Button variant="primary" onClick={() => regenerate()}>
-          <RefreshCw className="h-4 w-4" />
+        <Button onClick={() => regenerate()}>
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
           {t.common.regenerate}
         </Button>
       </div>
@@ -225,22 +229,17 @@ export function PasswordLabPage() {
   const { t } = useI18n();
   return (
     <div className="space-y-6">
-      <PageHeader
-        icon={LockKeyhole}
-        eyebrow={t.passwords.eyebrow}
-        title={t.passwords.title}
-        description={t.passwords.description}
-      />
+      <PageHeader icon={LockKeyhole} eyebrow={t.passwords.eyebrow} title={t.passwords.title} description={t.passwords.description} />
       <div className="grid gap-6 lg:grid-cols-2">
         <StrengthChecker />
         <SecretGenerator />
         <PassphraseGenerator />
         <Card>
           <CardTitle>{t.passwords.howTitle}</CardTitle>
-          <div className="space-y-2 text-sm leading-relaxed text-slate-400">
+          <div className="space-y-2 text-subhead leading-relaxed text-label-2">
             <p>{t.passwords.how1}</p>
             <p>{t.passwords.how2}</p>
-            <p className="text-xs text-slate-500">{t.passwords.how3}</p>
+            <p className="text-footnote">{t.passwords.how3}</p>
           </div>
         </Card>
       </div>

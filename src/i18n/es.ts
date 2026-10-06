@@ -117,6 +117,8 @@ export const es: Messages = {
     closeMenu: 'Cerrar menú',
     mainNav: 'Principal',
     loadingPage: 'Cargando página',
+    tabs: { overview: 'Resumen', scanner: 'Escanear', tools: 'Herramientas', history: 'Historial', rules: 'Reglas' },
+    toolsTitle: 'Herramientas',
   },
   nav: {
     groups: { Audit: 'Auditoría', Toolkit: 'Herramientas', Learn: 'Aprende' },

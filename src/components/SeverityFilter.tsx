@@ -1,6 +1,6 @@
-import { motion } from 'framer-motion';
 import { useI18n } from '../i18n/I18nContext';
 import type { Severity } from '../engine/types';
+import { Chip } from './PageHeader';
 
 interface SeverityFilterProps {
   counts: Record<Severity, number>;
@@ -9,31 +9,22 @@ interface SeverityFilterProps {
 }
 
 const SEVERITY_ORDER: Severity[] = ['critical', 'medium', 'low'];
-const SEVERITY_ACTIVE_STYLES: Record<Severity, string> = {
-  critical: 'border-red-400/60 bg-red-400/15 text-red-300 shadow-[0_0_16px_rgba(248,113,113,0.35)]',
-  medium: 'border-amber-400/60 bg-amber-400/15 text-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.3)]',
-  low: 'border-sky-400/60 bg-sky-400/15 text-sky-300 shadow-[0_0_16px_rgba(56,189,248,0.3)]',
+const DOT: Record<Severity, string> = {
+  critical: 'bg-critical',
+  medium: 'bg-medium',
+  low: 'bg-low',
 };
 
 export function SeverityFilter({ counts, active, onToggle }: SeverityFilterProps) {
   const { t } = useI18n();
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="scroll-row -mx-1 flex gap-2 overflow-x-auto px-1">
       {SEVERITY_ORDER.map((severity) => (
-        <motion.button
-          key={severity}
-          type="button"
-          onClick={() => onToggle(severity)}
-          aria-pressed={active[severity]}
-          whileTap={{ scale: 0.95 }}
-          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-            active[severity]
-              ? SEVERITY_ACTIVE_STYLES[severity]
-              : 'border-white/10 bg-white/3 text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          {t.common.severity[severity]} · {counts[severity]}
-        </motion.button>
+        <Chip key={severity} pressed={active[severity]} onClick={() => onToggle(severity)}>
+          <span aria-hidden="true" className={`h-2 w-2 rounded-full ${DOT[severity]}`} />
+          {t.common.severity[severity]}
+          <span className="tabular-nums opacity-70">{counts[severity]}</span>
+        </Chip>
       ))}
     </div>
   );

@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { RotateCcw, ShieldCheck } from 'lucide-react';
-import { Button, Card, CardTitle, PageHeader } from '../components/PageHeader';
+import { Button, Card, CardTitle, Chip, PageHeader, Segmented, Toggle } from '../components/PageHeader';
 import { CodeSnippet } from '../components/CodeSnippet';
 import {
   CSP_DIRECTIVES,
@@ -13,24 +13,35 @@ import {
 } from '../engine/headerBuilder';
 import { useI18n } from '../i18n/I18nContext';
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+/** A labelled native select: system pickers are the most familiar control there is. */
+function SelectRow({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+}) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 text-sm text-slate-300">
-      <span>{label}</span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        onClick={() => onChange(!checked)}
-        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? 'bg-emerald-500' : 'bg-white/15'}`}
-      >
-        <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${checked ? 'left-4' : 'left-0.5'}`}
-        />
-      </button>
+    <label className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1 text-subhead text-label">
+      <span className="font-mono text-footnote">{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="field h-9 w-auto max-w-full px-3 text-subhead">
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
     </label>
   );
+}
+
+/** Settings that only apply when their parent switch is on, indented under it. */
+function Nested({ children }: { children: ReactNode }) {
+  return <div className="ml-1 space-y-1 border-l-2 border-separator pl-4">{children}</div>;
 }
 
 export function HeadersPage() {
@@ -56,61 +67,79 @@ export function HeadersPage() {
         description={t.headers.description}
         actions={
           <Button onClick={() => setConfig(DEFAULT_HEADER_CONFIG)}>
-            <RotateCcw className="h-4 w-4" />
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
             {t.headers.reset}
           </Button>
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+      <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
           <Card>
             <CardTitle hint="HSTS">{t.headers.transport}</CardTitle>
-            <div className="space-y-3">
-              <Toggle label="Strict-Transport-Security" checked={config.hsts.enabled} onChange={(v) => patch('hsts', { ...config.hsts, enabled: v })} />
+            <div className="space-y-1">
+              <Toggle
+                label={<span className="font-mono text-footnote">Strict-Transport-Security</span>}
+                checked={config.hsts.enabled}
+                onChange={(v) => patch('hsts', { ...config.hsts, enabled: v })}
+              />
               {config.hsts.enabled && (
-                <div className="space-y-3 border-l border-white/10 pl-3">
-                  <label className="block text-xs text-slate-400">
+                <Nested>
+                  <label className="block py-1 text-footnote text-label-2">
                     {t.headers.maxAge}
                     <input
                       type="number"
                       min={0}
+                      inputMode="numeric"
                       value={config.hsts.maxAge}
                       onChange={(event) => patch('hsts', { ...config.hsts, maxAge: Number(event.target.value) })}
-                      className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-1.5 text-sm text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
+                      className="field mt-1 h-11 px-3 font-mono text-subhead text-label lg:h-9"
                     />
                   </label>
-                  <Toggle label="includeSubDomains" checked={config.hsts.includeSubDomains} onChange={(v) => patch('hsts', { ...config.hsts, includeSubDomains: v })} />
-                  <Toggle label="preload" checked={config.hsts.preload} onChange={(v) => patch('hsts', { ...config.hsts, preload: v })} />
-                </div>
+                  <Toggle
+                    label={<span className="font-mono text-footnote">includeSubDomains</span>}
+                    checked={config.hsts.includeSubDomains}
+                    onChange={(v) => patch('hsts', { ...config.hsts, includeSubDomains: v })}
+                  />
+                  <Toggle
+                    label={<span className="font-mono text-footnote">preload</span>}
+                    checked={config.hsts.preload}
+                    onChange={(v) => patch('hsts', { ...config.hsts, preload: v })}
+                  />
+                </Nested>
               )}
             </div>
           </Card>
 
           <Card>
             <CardTitle hint="CSP">Content-Security-Policy</CardTitle>
-            <div className="space-y-3">
+            <div className="space-y-1">
               <Toggle label={t.headers.enableCsp} checked={config.csp.enabled} onChange={(v) => patch('csp', { ...config.csp, enabled: v })} />
               {config.csp.enabled && (
-                <div className="space-y-2 border-l border-white/10 pl-3">
+                <Nested>
                   {CSP_DIRECTIVES.map((directive) => (
-                    <label key={directive} className="block text-xs text-slate-400">
+                    <label key={directive} className="block py-1 font-mono text-footnote text-label-2">
                       {directive}
                       <input
                         value={config.csp.directives[directive] ?? ''}
                         placeholder={t.headers.unset}
+                        spellCheck={false}
                         onChange={(event) =>
                           patch('csp', {
                             ...config.csp,
                             directives: { ...config.csp.directives, [directive]: event.target.value },
                           })
                         }
-                        className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950/60 px-2 py-1 font-mono text-xs text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
+                        className="field mt-1 h-10 px-3 font-mono text-footnote text-label lg:h-8"
                       />
                     </label>
                   ))}
-                  <Toggle label="upgrade-insecure-requests" checked={config.csp.upgradeInsecureRequests} onChange={(v) => patch('csp', { ...config.csp, upgradeInsecureRequests: v })} />
-                </div>
+                  <Toggle
+                    label={<span className="font-mono text-footnote">upgrade-insecure-requests</span>}
+                    checked={config.csp.upgradeInsecureRequests}
+                    onChange={(v) => patch('csp', { ...config.csp, upgradeInsecureRequests: v })}
+                  />
+                </Nested>
               )}
             </div>
           </Card>
@@ -119,49 +148,42 @@ export function HeadersPage() {
         <div className="space-y-6">
           <Card>
             <CardTitle>{t.headers.framing}</CardTitle>
-            <div className="space-y-3">
-              <label className="flex items-center justify-between gap-3 text-sm text-slate-300">
-                X-Frame-Options
-                <select
-                  value={config.frameOptions}
-                  onChange={(event) => patch('frameOptions', event.target.value as HeaderConfig['frameOptions'])}
-                  className="rounded-lg border border-white/10 bg-slate-950/60 px-2 py-1 text-sm text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
-                >
-                  <option value="DENY">DENY</option>
-                  <option value="SAMEORIGIN">SAMEORIGIN</option>
-                  <option value="off">off</option>
-                </select>
-              </label>
-              <Toggle label="X-Content-Type-Options: nosniff" checked={config.contentTypeOptions} onChange={(v) => patch('contentTypeOptions', v)} />
-              <label className="flex items-center justify-between gap-3 text-sm text-slate-300">
-                Referrer-Policy
-                <select
-                  value={config.referrerPolicy}
-                  onChange={(event) => patch('referrerPolicy', event.target.value)}
-                  className="rounded-lg border border-white/10 bg-slate-950/60 px-2 py-1 text-sm text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
-                >
-                  {REFERRER_POLICIES.map((policy) => (
-                    <option key={policy} value={policy}>
-                      {policy}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <div className="divide-y divide-separator">
+              <SelectRow
+                label="X-Frame-Options"
+                value={config.frameOptions}
+                options={['DENY', 'SAMEORIGIN', 'off']}
+                onChange={(value) => patch('frameOptions', value as HeaderConfig['frameOptions'])}
+              />
+              <Toggle
+                label={<span className="font-mono text-footnote">X-Content-Type-Options: nosniff</span>}
+                checked={config.contentTypeOptions}
+                onChange={(v) => patch('contentTypeOptions', v)}
+              />
+              <SelectRow
+                label="Referrer-Policy"
+                value={config.referrerPolicy}
+                options={REFERRER_POLICIES}
+                onChange={(value) => patch('referrerPolicy', value)}
+              />
             </div>
           </Card>
 
           <Card>
             <CardTitle hint={t.headers.permissionsHint}>Permissions-Policy</CardTitle>
-            <Toggle label={t.headers.enablePermissions} checked={config.permissionsPolicy.enabled} onChange={(v) => patch('permissionsPolicy', { ...config.permissionsPolicy, enabled: v })} />
+            <Toggle
+              label={t.headers.enablePermissions}
+              checked={config.permissionsPolicy.enabled}
+              onChange={(v) => patch('permissionsPolicy', { ...config.permissionsPolicy, enabled: v })}
+            />
             {config.permissionsPolicy.enabled && (
-              <div className="mt-3 flex flex-wrap gap-1.5 border-l border-white/10 pl-3">
+              <div className="mt-2 flex flex-wrap gap-2">
                 {PERMISSIONS_FEATURES.map((feature) => {
                   const blocked = config.permissionsPolicy.blocked.includes(feature);
                   return (
-                    <button
+                    <Chip
                       key={feature}
-                      type="button"
-                      aria-pressed={blocked}
+                      pressed={blocked}
                       onClick={() =>
                         patch('permissionsPolicy', {
                           ...config.permissionsPolicy,
@@ -170,49 +192,31 @@ export function HeadersPage() {
                             : [...config.permissionsPolicy.blocked, feature],
                         })
                       }
-                      className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
-                        blocked
-                          ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-300'
-                          : 'border-white/10 text-slate-500 hover:text-slate-300'
-                      }`}
                     >
-                      {feature}
-                    </button>
+                      <span className="font-mono">{feature}</span>
+                    </Chip>
                   );
                 })}
               </div>
             )}
-            <p className="mt-2 text-xs text-slate-500">{t.headers.permissionsNote}</p>
+            <p className="mt-3 text-footnote text-label-2">{t.headers.permissionsNote}</p>
           </Card>
 
           <Card>
             <CardTitle>{t.headers.crossOrigin}</CardTitle>
-            <div className="space-y-3">
-              <label className="flex items-center justify-between gap-3 text-sm text-slate-300">
-                Cross-Origin-Opener-Policy
-                <select
-                  value={config.coop}
-                  onChange={(event) => patch('coop', event.target.value as HeaderConfig['coop'])}
-                  className="rounded-lg border border-white/10 bg-slate-950/60 px-2 py-1 text-sm text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
-                >
-                  <option value="same-origin">same-origin</option>
-                  <option value="same-origin-allow-popups">same-origin-allow-popups</option>
-                  <option value="off">off</option>
-                </select>
-              </label>
-              <label className="flex items-center justify-between gap-3 text-sm text-slate-300">
-                Cross-Origin-Resource-Policy
-                <select
-                  value={config.corp}
-                  onChange={(event) => patch('corp', event.target.value as HeaderConfig['corp'])}
-                  className="rounded-lg border border-white/10 bg-slate-950/60 px-2 py-1 text-sm text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
-                >
-                  <option value="same-origin">same-origin</option>
-                  <option value="same-site">same-site</option>
-                  <option value="cross-origin">cross-origin</option>
-                  <option value="off">off</option>
-                </select>
-              </label>
+            <div className="divide-y divide-separator">
+              <SelectRow
+                label="Cross-Origin-Opener-Policy"
+                value={config.coop}
+                options={['same-origin', 'same-origin-allow-popups', 'off']}
+                onChange={(value) => patch('coop', value as HeaderConfig['coop'])}
+              />
+              <SelectRow
+                label="Cross-Origin-Resource-Policy"
+                value={config.corp}
+                options={['same-origin', 'same-site', 'cross-origin', 'off']}
+                onChange={(value) => patch('corp', value as HeaderConfig['corp'])}
+              />
             </div>
           </Card>
         </div>
@@ -220,28 +224,18 @@ export function HeadersPage() {
 
       <Card>
         <CardTitle hint={t.headers.headerCount(headers.length)}>{t.headers.output}</CardTitle>
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {HEADER_FORMATS.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              onClick={() => setFormat(entry.id)}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                format === entry.id
-                  ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-300'
-                  : 'border-white/10 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {entry.label}
-            </button>
-          ))}
+        <div className="mb-3">
+          <Segmented
+            label={t.headers.output}
+            options={HEADER_FORMATS.map((entry) => ({ id: entry.id, label: entry.label }))}
+            value={format}
+            onChange={setFormat}
+          />
         </div>
         {headers.length > 0 ? (
           <CodeSnippet code={output} copyLabel={t.headers.copyConfig} />
         ) : (
-          <p className="rounded-lg border border-white/10 bg-slate-950/40 px-4 py-6 text-center text-sm text-slate-500">
-            {t.headers.enableOne}
-          </p>
+          <p className="rounded-[14px] bg-fill px-4 py-6 text-center text-subhead text-label-2">{t.headers.enableOne}</p>
         )}
       </Card>
     </div>

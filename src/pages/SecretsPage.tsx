@@ -23,7 +23,7 @@ function HighlightedLine({ line, match, reveal }: { line: string; match?: Secret
   return (
     <>
       {line.slice(0, match.start)}
-      <mark className="rounded-sm bg-red-500/25 px-0.5 text-red-200 ring-1 ring-red-400/40">
+      <mark className="rounded-[4px] bg-critical-soft px-0.5 font-semibold text-critical ring-1 ring-critical/40">
         {reveal ? match.secret : maskSecret(match.secret)}
       </mark>
       {line.slice(match.end)}
@@ -52,7 +52,7 @@ export function SecretsPage() {
         actions={
           <>
             <Button onClick={() => setInput(SAMPLE)}>
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
               {t.secrets.loadSample}
             </Button>
             {input && <Button onClick={() => setInput('')}>{t.common.clear}</Button>}
@@ -69,46 +69,50 @@ export function SecretsPage() {
           rows={8}
           spellCheck={false}
           aria-label={t.secrets.inputAria}
-          className="w-full resize-y rounded-lg border border-white/10 bg-slate-950/60 p-3 font-mono text-xs text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
+          className="field resize-y p-3 font-mono text-footnote"
         />
       </Card>
 
       {deferredInput.trim().length > 0 && (
         <>
           <div
-            className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm ${
-              matches.length > 0
-                ? 'border-red-500/30 bg-red-500/10 text-red-200'
-                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+            role="status"
+            className={`card flex items-center gap-3 px-5 py-4 text-subhead font-medium ${
+              matches.length > 0 ? 'bg-critical-soft text-critical' : 'bg-tint-soft text-tint'
             }`}
           >
-            {matches.length > 0 ? <ShieldAlert className="h-5 w-5 shrink-0" /> : <ShieldCheck className="h-5 w-5 shrink-0" />}
+            {matches.length > 0 ? (
+              <ShieldAlert className="h-5 w-5 shrink-0" aria-hidden="true" />
+            ) : (
+              <ShieldCheck className="h-5 w-5 shrink-0" aria-hidden="true" />
+            )}
             {matches.length > 0 ? t.secrets.detected(matches.length) : t.secrets.none}
           </div>
 
           {matches.length > 0 && (
             <div className="grid gap-6 lg:grid-cols-2">
-              <Card>
+              <Card className="min-w-0">
                 <CardTitle
                   hint={
                     <button
                       type="button"
                       onClick={() => setReveal((value) => !value)}
-                      className="inline-flex items-center gap-1 text-slate-400 hover:text-emerald-300"
+                      aria-pressed={reveal}
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-semibold text-tint hover:bg-fill"
                     >
-                      {reveal ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      {reveal ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
                       {reveal ? t.secrets.mask : t.secrets.reveal}
                     </button>
                   }
                 >
                   {t.secrets.highlighted}
                 </CardTitle>
-                <pre className="max-h-96 overflow-auto rounded-lg border border-white/10 bg-slate-950/80 py-2 font-mono text-xs leading-relaxed text-slate-300">
+                <pre className="max-h-96 overflow-auto rounded-[14px] border border-separator bg-code py-2 font-mono text-footnote leading-relaxed text-label">
                   {lines.map((line, index) => {
                     const match = matchesByLine.get(index + 1);
                     return (
-                      <div key={index} className={`flex ${match ? 'bg-red-500/5' : ''}`}>
-                        <span className="w-10 shrink-0 select-none pr-3 text-right text-slate-600">{index + 1}</span>
+                      <div key={index} className={`flex ${match ? 'bg-critical-soft' : ''}`}>
+                        <span className="w-10 shrink-0 select-none pr-3 text-right text-label-3">{index + 1}</span>
                         <span className="whitespace-pre pr-3">
                           <HighlightedLine line={line} match={match} reveal={reveal} />
                         </span>
@@ -120,16 +124,16 @@ export function SecretsPage() {
 
               <Card>
                 <CardTitle hint={t.secrets.rotateHint}>{t.secrets.detections}</CardTitle>
-                <ul className="space-y-3">
+                <ul className="divide-y divide-separator overflow-hidden rounded-[14px] bg-fill">
                   {matches.map((match) => (
-                    <li key={`${match.line}-${match.ruleId}`} className="rounded-lg border border-white/10 bg-slate-950/40 p-3">
+                    <li key={`${match.line}-${match.ruleId}`} className="p-3.5">
                       <div className="flex items-center gap-2">
                         <SeverityBadge severity={match.severity} />
-                        <span className="text-sm font-medium text-slate-100">{match.name}</span>
-                        <span className="ml-auto text-xs text-slate-500">{t.secrets.line(match.line)}</span>
+                        <span className="text-subhead font-semibold text-label">{match.name}</span>
+                        <span className="ml-auto text-footnote text-label-2">{t.secrets.line(match.line)}</span>
                       </div>
-                      <p className="mt-1 font-mono text-xs text-slate-400">{maskSecret(match.secret)}</p>
-                      <p className="mt-2 text-xs text-slate-400">{match.rotateHint}</p>
+                      <p className="mt-1.5 font-mono text-footnote text-label-2">{maskSecret(match.secret)}</p>
+                      <p className="mt-1.5 text-footnote text-label">{match.rotateHint}</p>
                     </li>
                   ))}
                 </ul>

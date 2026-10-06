@@ -116,6 +116,8 @@ export const en = {
     closeMenu: 'Close menu',
     mainNav: 'Main',
     loadingPage: 'Loading page',
+    tabs: { overview: 'Overview', scanner: 'Scan', tools: 'Tools', history: 'History', rules: 'Rules' },
+    toolsTitle: 'Toolkit',
   },
   nav: {
     groups: { Audit: 'Audit', Toolkit: 'Toolkit', Learn: 'Learn' },

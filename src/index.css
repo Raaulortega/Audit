@@ -1,23 +1,253 @@
 @import 'tailwindcss';
 
 /*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+  LocalAudit design system, built on Apple's Human Interface Guidelines.
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
+  - Two appearances that follow the system setting (no in-app switch).
+  - Colors are named by role. Every text color is at least 4.5:1 on the surface it sits on:
+      label-2  #6C6C70 on #FFFFFF 5.2:1 · on #F2F2F7 4.7:1 | #AEAEB2 on #1C1C1E 7.7:1
+      tint     #1A7F45 on #FFFFFF 5.0:1 · white on tint 5.0:1 | #30D158 on #1C1C1E 8.4:1
+      critical #D70015 5.4:1 | #FF6961 6.0:1   medium #B25000 5.2:1 | #FFB340 9.5:1
+      low      #0040DD 7.6:1 | #409CFF 6.0:1
+  - label-3 is for glyphs and placeholders only, never for text people must read.
+  - Glass belongs to the floating functional layer (sidebar, bars, sheets), never to content.
 */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: #f2f2f7;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --fill: rgb(118 118 128 / 0.12);
+  --fill-strong: rgb(118 118 128 / 0.2);
+  --label: #1d1d1f;
+  --label-2: #6c6c70;
+  --label-3: #8e8e93;
+  --separator: rgb(60 60 67 / 0.16);
+  --tint: #1a7f45;
+  --on-tint: #ffffff;
+  --tint-soft: rgb(26 127 69 / 0.1);
+  --critical: #d70015;
+  --critical-soft: rgb(215 0 21 / 0.08);
+  --medium: #b25000;
+  --medium-soft: rgb(178 80 0 / 0.09);
+  --low: #0040dd;
+  --low-soft: rgb(0 64 221 / 0.08);
+  --varies: #8944ab;
+  --code-bg: #f6f6f8;
+
+  --glass-bg: rgb(250 250 252 / 0.72);
+  --glass-border: rgb(255 255 255 / 0.7);
+  --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.06);
+  --sheen: linear-gradient(180deg, rgb(26 127 69 / 0.16) 0%, rgb(48 176 199 / 0.08) 45%, transparent 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --surface: #1c1c1e;
+    --surface-raised: #2c2c2e;
+    --fill: rgb(118 118 128 / 0.24);
+    --fill-strong: rgb(118 118 128 / 0.36);
+    --label: #f5f5f7;
+    --label-2: #aeaeb2;
+    --label-3: #8e8e93;
+    --separator: rgb(84 84 88 / 0.55);
+    --tint: #30d158;
+    --on-tint: #000000;
+    --tint-soft: rgb(48 209 88 / 0.14);
+    --critical: #ff6961;
+    --critical-soft: rgb(255 105 97 / 0.14);
+    --medium: #ffb340;
+    --medium-soft: rgb(255 179 64 / 0.14);
+    --low: #409cff;
+    --low-soft: rgb(64 156 255 / 0.14);
+    --varies: #da8fff;
+    --code-bg: #141416;
+
+    --glass-bg: rgb(30 30 32 / 0.66);
+    --glass-border: rgb(255 255 255 / 0.1);
+    --glass-shadow: 0 8px 32px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);
+    --sheen: linear-gradient(180deg, rgb(48 209 88 / 0.18) 0%, rgb(64 156 255 / 0.08) 45%, transparent 100%);
+  }
+}
+
+/* Increase Contrast: stronger separators, labels and an almost opaque functional layer. */
+@media (prefers-contrast: more) {
+  :root {
+    --label-2: #3a3a3c;
+    --separator: rgb(60 60 67 / 0.4);
+    --tint: #0f5c30;
+    --glass-bg: rgb(250 250 252 / 0.97);
+    --glass-border: rgb(60 60 67 / 0.4);
+  }
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root {
+    --label-2: #d1d1d6;
+    --separator: rgb(140 140 145 / 0.7);
+    --tint: #5ee07f;
+    --glass-bg: rgb(28 28 30 / 0.97);
+    --glass-border: rgb(255 255 255 / 0.35);
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-fill: var(--fill);
+  --color-fill-strong: var(--fill-strong);
+  --color-label: var(--label);
+  --color-label-2: var(--label-2);
+  --color-label-3: var(--label-3);
+  --color-separator: var(--separator);
+  --color-tint: var(--tint);
+  --color-on-tint: var(--on-tint);
+  --color-tint-soft: var(--tint-soft);
+  --color-critical: var(--critical);
+  --color-critical-soft: var(--critical-soft);
+  --color-medium: var(--medium);
+  --color-medium-soft: var(--medium-soft);
+  --color-low: var(--low);
+  --color-low-soft: var(--low-soft);
+  --color-varies: var(--varies);
+  --color-code: var(--code-bg);
+}
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', system-ui, Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable Display', 'Segoe UI', system-ui,
+    sans-serif;
+  --font-rounded: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Apple text styles. Nothing smaller than 11 px. */
+  --text-large-title: 2.125rem;
+  --text-large-title--line-height: 2.5625rem;
+  --text-title1: 1.75rem;
+  --text-title1--line-height: 2.125rem;
+  --text-title2: 1.375rem;
+  --text-title2--line-height: 1.75rem;
+  --text-title3: 1.25rem;
+  --text-title3--line-height: 1.5625rem;
+  --text-headline: 1.0625rem;
+  --text-headline--line-height: 1.375rem;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.5rem;
+  --text-callout: 1rem;
+  --text-callout--line-height: 1.3125rem;
+  --text-subhead: 0.9375rem;
+  --text-subhead--line-height: 1.25rem;
+  --text-footnote: 0.8125rem;
+  --text-footnote--line-height: 1.125rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption2: 0.6875rem;
+  --text-caption2--line-height: 0.8125rem;
+
+  --radius-card: 1.25rem;
+  --radius-control: 0.75rem;
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 @layer base {
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--separator);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--label);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--tint-soft);
+  }
+
+  :focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--tint) 70%, transparent);
+    outline-offset: 2px;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--label-3);
   }
 }
 
-body {
-  background-color: #020617;
+@layer components {
+  /* Liquid Glass approximation for the functional layer only. */
+  .glass {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(28px) saturate(1.6);
+    backdrop-filter: blur(28px) saturate(1.6);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  /* Opaque content surface (inset grouped style). */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius-card);
+  }
+
+  .field {
+    width: 100%;
+    border-radius: var(--radius-control);
+    background: var(--fill);
+    color: var(--label);
+    border: 1px solid transparent;
+    transition:
+      border-color 0.15s,
+      background-color 0.15s;
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--tint);
+    background: var(--surface);
+  }
+
+  /* Horizontal chip rows stay scrollable without a visible scrollbar. */
+  .scroll-row {
+    scrollbar-width: none;
+  }
+  .scroll-row::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Reduce Transparency: opaque functional layer. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--surface-raised);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -32,15 +32,15 @@ function ErrorFallback() {
   const { t } = useI18n();
   return (
     <div role="alert" className="mx-auto flex min-h-[50vh] max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
-      <AlertTriangle className="h-10 w-10 text-amber-400" />
-      <h1 className="text-lg font-semibold text-slate-100">{t.errorBoundary.title}</h1>
-      <p className="text-sm text-slate-400">{t.errorBoundary.body}</p>
+      <AlertTriangle className="h-10 w-10 text-medium" aria-hidden="true" />
+      <h1 className="text-title3 font-semibold text-label">{t.errorBoundary.title}</h1>
+      <p className="text-subhead text-label-2">{t.errorBoundary.body}</p>
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
+        className="inline-flex min-h-11 items-center gap-2 rounded-full bg-tint px-5 text-subhead font-semibold text-on-tint hover:brightness-110"
       >
-        <RotateCcw className="h-4 w-4" />
+        <RotateCcw className="h-4 w-4" aria-hidden="true" />
         {t.errorBoundary.reload}
       </button>
     </div>

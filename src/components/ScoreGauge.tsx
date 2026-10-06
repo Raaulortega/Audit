@@ -1,81 +1,106 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { animate, motion, useReducedMotion } from 'framer-motion';
 import { useI18n } from '../i18n/I18nContext';
-import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
+import { SHIELD_PATH } from './Logo';
 
 interface ScoreGaugeProps {
   score: number;
 }
 
-interface ScoreTier {
-  color: string;
-  glow: string;
-  label: 'strong' | 'attention' | 'critical';
+type Tier = 'strong' | 'attention' | 'critical';
+
+const TIER_COLOR: Record<Tier, string> = {
+  strong: 'var(--tint)',
+  attention: 'var(--medium)',
+  critical: 'var(--critical)',
+};
+
+function scoreTier(score: number): Tier {
+  if (score >= 80) return 'strong';
+  if (score >= 50) return 'attention';
+  return 'critical';
 }
 
-function scoreTier(score: number): ScoreTier {
-  if (score >= 80) return { color: '#34d399', glow: 'rgba(52,211,153,0.55)', label: 'strong' };
-  if (score >= 50) return { color: '#fbbf24', glow: 'rgba(251,191,36,0.5)', label: 'attention' };
-  return { color: '#f87171', glow: 'rgba(248,113,113,0.55)', label: 'critical' };
-}
-
+/**
+ * The signature element: the LocalAudit shield fills up with the score.
+ * At 80 or more the check is cut out of it, which is exactly the logo: "audit passed".
+ */
 export function ScoreGauge({ score }: ScoreGaugeProps) {
   const { t } = useI18n();
-  const radius = 70;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
-  const { color, glow, label } = scoreTier(score);
+  const reduceMotion = useReducedMotion();
+  const id = useId().replace(/:/g, '');
+  const tier = scoreTier(score);
+  const color = TIER_COLOR[tier];
 
-  const motionScore = useMotionValue(0);
-  const roundedScore = useTransform(motionScore, (value) => Math.round(value));
-  const [displayScore, setDisplayScore] = useState(0);
-
+  const [displayScore, setDisplayScore] = useState(score);
+  const shownRef = useRef(0);
   useEffect(() => {
-    const controls = animate(motionScore, score, { duration: 1.1, ease: 'easeOut' });
-    const unsubscribe = roundedScore.on('change', setDisplayScore);
-    return () => {
-      controls.stop();
-      unsubscribe();
-    };
-  }, [score, motionScore, roundedScore]);
-
-  const isCritical = score < 50;
+    if (reduceMotion) {
+      shownRef.current = score;
+      setDisplayScore(score);
+      return;
+    }
+    const controls = animate(shownRef.current, score, {
+      duration: 0.9,
+      ease: [0.32, 0.72, 0, 1],
+      onUpdate: (value) => {
+        shownRef.current = value;
+        setDisplayScore(Math.round(value));
+      },
+    });
+    return () => controls.stop();
+  }, [score, reduceMotion]);
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="relative" style={{ filter: `drop-shadow(0 0 24px ${glow})` }}>
-        {isCritical && (
-          <motion.div
-            animate={{ opacity: [0.35, 0, 0.35], scale: [1, 1.25, 1] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute inset-0 rounded-full bg-red-500/30"
+    <div
+      role="img"
+      aria-label={`${t.score.title}: ${score} / 100. ${t.score[tier]}`}
+      className="card flex h-full items-center gap-5 p-5"
+    >
+      <svg viewBox="0 0 64 64" className="h-28 w-28 shrink-0" aria-hidden="true">
+        <defs>
+          <clipPath id={`shield-${id}`}>
+            <path d={SHIELD_PATH} />
+          </clipPath>
+          <mask id={`check-${id}`}>
+            <rect width="64" height="64" fill="white" />
+            {tier === 'strong' && (
+              <path
+                d="M21.5 31.5 28.8 38.8 43 24.5"
+                fill="none"
+                stroke="black"
+                strokeWidth="6.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
+          </mask>
+        </defs>
+        <g clipPath={`url(#shield-${id})`} mask={`url(#check-${id})`}>
+          <rect width="64" height="64" fill="var(--fill-strong)" />
+          <motion.rect
+            x="0"
+            y="4"
+            width="64"
+            height="56"
+            fill={color}
+            style={{ originY: 1, transformBox: 'fill-box' }}
+            initial={{ scaleY: reduceMotion ? score / 100 : 0 }}
+            animate={{ scaleY: score / 100 }}
+            transition={{ duration: reduceMotion ? 0 : 0.9, ease: [0.32, 0.72, 0, 1] }}
           />
-        )}
-        <svg width="180" height="180" viewBox="0 0 180 180">
-          <circle cx="90" cy="90" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
-          <motion.circle
-            cx="90"
-            cy="90"
-            r={radius}
-            fill="none"
-            stroke={color}
-            strokeWidth="14"
-            strokeDasharray={circumference}
-            strokeLinecap="round"
-            transform="rotate(-90 90 90)"
-            initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset: offset }}
-            transition={{ duration: 1.1, ease: 'easeOut' }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-5xl font-bold tabular-nums text-white">{displayScore}</span>
-          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">/ 100</span>
-        </div>
+        </g>
+      </svg>
+      <div className="min-w-0">
+        <p className="text-footnote font-medium text-label-2">{t.score.title}</p>
+        <p className="font-rounded text-[3.5rem] font-bold leading-none tabular-nums tracking-tight text-label">
+          {displayScore}
+          <span className="ml-1 text-title3 font-semibold text-label-2">/100</span>
+        </p>
+        <p className="mt-1.5 text-subhead font-semibold" style={{ color }}>
+          {t.score[tier]}
+        </p>
       </div>
-      <p className="mt-3 text-sm font-medium text-slate-300">{t.score.title}</p>
-      <p className="text-xs" style={{ color }}>
-        {t.score[label]}
-      </p>
     </div>
   );
 }

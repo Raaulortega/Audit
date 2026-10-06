@@ -1,8 +1,8 @@
-import { motion } from 'framer-motion';
 import { Download, FileJson, FileText, ShieldHalf } from 'lucide-react';
 import type { AnalysisResult } from '../engine/types';
 import { downloadTextFile, toJsonReport, toMarkdownReport, toSarifReport } from '../engine/report';
 import { useI18n } from '../i18n/I18nContext';
+import { Button } from './PageHeader';
 
 interface ExportReportProps {
   result: AnalysisResult;
@@ -37,25 +37,21 @@ export function ExportReport({ result }: ExportReportProps) {
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/3 p-3 backdrop-blur-xs">
-      <span className="mr-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-        <Download className="h-3.5 w-3.5 text-emerald-400" />
+    <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+      <p className="flex items-center gap-2 text-subhead font-semibold text-label sm:mr-auto">
+        <Download className="h-4 w-4 text-label-2" aria-hidden="true" />
         {t.exportReport.title}
-      </span>
-      {exports.map(({ label, hint, Icon, onClick }) => (
-        <motion.button
-          key={label}
-          type="button"
-          onClick={onClick}
-          title={hint}
-          whileHover={{ y: -2 }}
-          whileTap={{ scale: 0.96 }}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-emerald-400/40 hover:text-emerald-300"
-        >
-          <Icon className="h-3.5 w-3.5" />
-          {label}
-        </motion.button>
-      ))}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {exports.map(({ label, hint, Icon, onClick }) => (
+          <span key={label} title={hint}>
+            <Button onClick={onClick}>
+              <Icon className="h-4 w-4" aria-hidden="true" />
+              {label}
+            </Button>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

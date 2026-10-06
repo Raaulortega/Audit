@@ -1,8 +1,8 @@
 import { useCallback, useState, type DragEvent } from 'react';
-import { motion } from 'framer-motion';
-import { AlertTriangle, FilePlus2, UploadCloud } from 'lucide-react';
+import { AlertTriangle, FileUp } from 'lucide-react';
 import { MAX_FILE_BYTES } from '../engine/storedFiles';
 import { useI18n } from '../i18n/I18nContext';
+import { Button, buttonClass } from './PageHeader';
 
 interface FileDropzoneProps {
   onAddFile: (filename: string, content: string) => void;
@@ -56,74 +56,71 @@ export function FileDropzone({ onAddFile }: FileDropzoneProps) {
   }, [pastedContent, onAddFile, t]);
 
   return (
-    <div className="space-y-4">
-      <motion.div
+    <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+      <div
         onDragOver={(event) => {
           event.preventDefault();
           setIsDragging(true);
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        animate={{ scale: isDragging ? 1.015 : 1 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
-        className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-10 backdrop-blur-xs transition-colors ${
-          isDragging
-            ? 'border-emerald-400/70 bg-emerald-400/10 shadow-[0_0_32px_rgba(52,211,153,0.25)]'
-            : 'border-white/10 bg-white/3 hover:border-white/20'
+        className={`card flex flex-col items-center justify-center border-2 border-dashed px-6 py-10 text-center transition-colors ${
+          isDragging ? 'border-tint bg-tint-soft' : 'border-separator'
         }`}
       >
-        <motion.div animate={isDragging ? { y: [0, -6, 0] } : { y: 0 }} transition={{ duration: 0.8, repeat: isDragging ? Infinity : 0 }}>
-          <UploadCloud className={`mb-3 h-10 w-10 ${isDragging ? 'text-emerald-400' : 'text-slate-400'}`} />
-        </motion.div>
-        <p className="text-center text-sm text-slate-300">{t.dropzone.dropHint}</p>
-        <p className="mt-1 text-center text-xs text-slate-500">{t.dropzone.otherFiles}</p>
-        <label className="mt-3 cursor-pointer text-sm text-emerald-400 transition-colors hover:text-emerald-300">
+        <span
+          className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl transition-colors ${
+            isDragging ? 'bg-tint text-on-tint' : 'bg-tint-soft text-tint'
+          }`}
+        >
+          <FileUp className="h-7 w-7" aria-hidden="true" />
+        </span>
+        <p className="text-headline font-semibold text-label">{t.dropzone.dropHint}</p>
+        <p className="mt-1 max-w-sm text-footnote text-label-2">{t.dropzone.otherFiles}</p>
+        <label className={`${buttonClass('secondary')} mt-5 cursor-pointer focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-tint/70`}>
           {t.dropzone.browse}
           <input
             type="file"
             multiple
-            className="hidden"
+            className="sr-only"
             onChange={(event) => {
               if (event.target.files) readFiles(event.target.files);
               event.target.value = '';
             }}
           />
         </label>
-      </motion.div>
+      </div>
+
+      <div className="card flex flex-col p-5">
+        <label htmlFor="paste-config" className="mb-2 text-headline font-semibold text-label">
+          {t.dropzone.pasteTitle}
+        </label>
+        <textarea
+          id="paste-config"
+          value={pastedContent}
+          onChange={(event) => setPastedContent(event.target.value)}
+          placeholder={t.dropzone.pastePlaceholder}
+          rows={5}
+          spellCheck={false}
+          className="field min-h-32 flex-1 resize-y p-3 font-mono text-footnote"
+        />
+        <div className="mt-3 flex justify-end">
+          <Button variant="primary" onClick={handlePasteSubmit} disabled={pastedContent.trim().length === 0}>
+            {t.dropzone.analyzePasted}
+          </Button>
+        </div>
+      </div>
 
       {errors.length > 0 && (
-        <ul role="alert" className="space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+        <ul role="alert" className="card space-y-1 bg-medium-soft px-4 py-3 text-footnote text-label lg:col-span-2">
           {errors.map((error) => (
             <li key={error} className="flex items-center gap-2">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              <AlertTriangle className="h-4 w-4 shrink-0 text-medium" aria-hidden="true" />
               {error}
             </li>
           ))}
         </ul>
       )}
-
-      <div className="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xs">
-        <div className="mb-2 flex items-center gap-2 text-sm text-slate-400">
-          <FilePlus2 className="h-4 w-4" />
-          {t.dropzone.pasteTitle}
-        </div>
-        <textarea
-          value={pastedContent}
-          onChange={(event) => setPastedContent(event.target.value)}
-          placeholder={t.dropzone.pastePlaceholder}
-          rows={4}
-          className="w-full resize-y rounded-lg border border-white/10 bg-slate-950/60 p-2 font-mono text-xs text-slate-200 transition-colors focus:border-emerald-400/60 focus:outline-hidden"
-        />
-        <motion.button
-          type="button"
-          onClick={handlePasteSubmit}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.97 }}
-          className="mt-2 rounded-lg bg-emerald-500 px-3 py-1.5 text-sm font-medium text-slate-950 shadow-[0_0_16px_rgba(52,211,153,0.35)] transition-colors hover:bg-emerald-400"
-        >
-          {t.dropzone.analyzePasted}
-        </motion.button>
-      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, History, Minus, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
-import { Button, Card, CardTitle, PageHeader } from '../components/PageHeader';
+import { Button, Card, CardTitle, PageHeader, buttonClass } from '../components/PageHeader';
 import { SeverityBadge } from '../components/SeverityBadge';
 import { useAudit } from '../context/AuditContext';
 import { compareScans, type ScanSnapshot } from '../engine/history';
@@ -22,19 +22,19 @@ function DiffList({
   const { t } = useI18n();
   return (
     <div>
-      <p className={`mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${tone}`}>
-        <Icon className="h-3.5 w-3.5" />
+      <p className={`mb-2 flex items-center gap-1.5 text-footnote font-semibold ${tone}`}>
+        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         {title} ({findings.length})
       </p>
       {findings.length === 0 ? (
-        <p className="text-xs text-slate-600">{t.common.none}</p>
+        <p className="text-footnote text-label-2">{t.common.none}</p>
       ) : (
-        <ul className="space-y-1.5">
+        <ul className="space-y-2">
           {findings.map((finding) => (
-            <li key={finding.id} className="flex items-center gap-2 text-xs text-slate-300">
+            <li key={finding.id} className="flex items-center gap-2 text-footnote text-label">
               <SeverityBadge severity={finding.severity} />
               <span className="truncate">{finding.title}</span>
-              <span className="ml-auto shrink-0 text-slate-600">{finding.sourceFile}</span>
+              <span className="ml-auto shrink-0 font-mono text-caption text-label-2">{finding.sourceFile}</span>
             </li>
           ))}
         </ul>
@@ -77,15 +77,13 @@ export function HistoryPage() {
           title={t.history.title}
           description={t.history.emptyDescription}
         />
-        <Card>
-          <p className="py-10 text-center text-sm text-slate-500">
-            {t.history.emptyBody}
-            <br />
-            <Link to={to('/scanner')} className="mt-3 inline-block text-emerald-400 hover:text-emerald-300">
-              {t.history.goToScanner}
-            </Link>
-          </p>
-        </Card>
+        <div className="card flex flex-col items-center gap-4 px-6 py-12 text-center">
+          <History className="h-12 w-12 text-label-3" strokeWidth={1.5} aria-hidden="true" />
+          <p className="max-w-sm text-subhead text-label-2">{t.history.emptyBody}</p>
+          <Link to={to('/scanner')} className={buttonClass('primary')}>
+            {t.history.goToScanner}
+          </Link>
+        </div>
       </div>
     );
   }
@@ -99,71 +97,76 @@ export function HistoryPage() {
         description={t.history.description}
         actions={
           <Button variant="danger" onClick={clearHistory}>
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
             {t.common.clearAll}
           </Button>
         }
       />
 
-      <Card className="p-0">
-        <ul className="divide-y divide-white/5">
-          {history.map((snapshot) => {
-            const picked = selected?.includes(snapshot.id);
-            const label = labelOf(snapshot);
-            return (
-              <li key={snapshot.id} className="flex items-center gap-3 px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={Boolean(picked)}
-                  onChange={() => toggle(snapshot.id)}
-                  aria-label={t.history.select(label)}
-                  className="h-4 w-4 shrink-0 accent-emerald-500"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 text-sm font-medium text-slate-100">
-                    <span className="truncate">{label}</span>
-                    {snapshot.id === activeSnapshotId && (
-                      <span className="shrink-0 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
-                        {t.history.live}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {formatDate(snapshot.savedAt)} · {t.history.files(snapshot.fileNames.length)}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <span className="flex gap-1 text-xs">
-                    <span className="text-red-400">{snapshot.counts.critical}</span>
-                    <span className="text-amber-400">{snapshot.counts.medium}</span>
-                    <span className="text-sky-400">{snapshot.counts.low}</span>
-                  </span>
-                  <span className="w-10 text-right text-sm font-bold tabular-nums text-slate-200">{snapshot.score}</span>
-                  <button
-                    type="button"
-                    onClick={() => deleteSnapshot(snapshot.id)}
-                    aria-label={t.history.delete(label)}
-                    className="text-slate-600 hover:text-red-400"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </Card>
+      <ul className="card divide-y divide-separator overflow-hidden">
+        {history.map((snapshot) => {
+          const picked = selected?.includes(snapshot.id);
+          const label = labelOf(snapshot);
+          return (
+            <li key={snapshot.id} className={`flex min-h-16 items-center gap-3 py-2 pl-4 pr-1.5 ${picked ? 'bg-tint-soft' : ''}`}>
+              <input
+                type="checkbox"
+                checked={Boolean(picked)}
+                onChange={() => toggle(snapshot.id)}
+                aria-label={t.history.select(label)}
+                className="h-5 w-5 shrink-0 cursor-pointer accent-tint"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-2 text-subhead font-medium text-label">
+                  <span className="truncate">{label}</span>
+                  {snapshot.id === activeSnapshotId && (
+                    <span className="shrink-0 rounded-full bg-tint-soft px-2 py-0.5 text-caption2 font-semibold text-tint">
+                      {t.history.live}
+                    </span>
+                  )}
+                </p>
+                <p className="text-footnote text-label-2">
+                  {formatDate(snapshot.savedAt)} · {t.history.files(snapshot.fileNames.length)}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span
+                  className="hidden gap-2 text-footnote font-semibold tabular-nums sm:flex"
+                  aria-label={`${t.common.severity.critical} ${snapshot.counts.critical}, ${t.common.severity.medium} ${snapshot.counts.medium}, ${t.common.severity.low} ${snapshot.counts.low}`}
+                >
+                  <span className="text-critical">{snapshot.counts.critical}</span>
+                  <span className="text-medium">{snapshot.counts.medium}</span>
+                  <span className="text-low">{snapshot.counts.low}</span>
+                </span>
+                <span className="w-10 text-right font-rounded text-title3 font-semibold tabular-nums text-label">{snapshot.score}</span>
+                <button
+                  type="button"
+                  onClick={() => deleteSnapshot(snapshot.id)}
+                  aria-label={t.history.delete(label)}
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-label-3 transition-colors hover:bg-critical-soft hover:text-critical lg:h-9 lg:w-9"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
 
       {comparison && comparison.before.id !== comparison.after.id && (
         <Card>
           <CardTitle
             hint={
               <span
-                className={`inline-flex items-center gap-1 font-semibold ${
-                  comparison.diff.scoreDelta >= 0 ? 'text-emerald-300' : 'text-red-300'
+                className={`inline-flex items-center gap-1 text-subhead font-semibold ${
+                  comparison.diff.scoreDelta >= 0 ? 'text-tint' : 'text-critical'
                 }`}
               >
-                {comparison.diff.scoreDelta >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                {comparison.diff.scoreDelta >= 0 ? (
+                  <TrendingUp className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <TrendingDown className="h-4 w-4" aria-hidden="true" />
+                )}
                 {comparison.diff.scoreDelta >= 0 ? '+' : ''}
                 {comparison.diff.scoreDelta} {t.history.points}
               </span>
@@ -171,19 +174,19 @@ export function HistoryPage() {
           >
             {t.history.comparison}
           </CardTitle>
-          <p className="mb-4 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-            <span className="rounded-md bg-white/5 px-2 py-1">
+          <p className="mb-5 flex flex-wrap items-center gap-2 text-footnote text-label">
+            <span className="rounded-full bg-fill px-3 py-1">
               {labelOf(comparison.before)} · {comparison.before.score}
             </span>
-            <ArrowRight className="h-3.5 w-3.5" />
-            <span className="rounded-md bg-white/5 px-2 py-1">
+            <ArrowRight className="h-3.5 w-3.5 text-label-2" aria-hidden="true" />
+            <span className="rounded-full bg-fill px-3 py-1">
               {labelOf(comparison.after)} · {comparison.after.score}
             </span>
           </p>
-          <div className="grid gap-5 sm:grid-cols-3">
-            <DiffList title={t.history.fixed} findings={comparison.diff.fixed} tone="text-emerald-300" Icon={Minus} />
-            <DiffList title={t.history.introduced} findings={comparison.diff.introduced} tone="text-red-300" Icon={Plus} />
-            <DiffList title={t.history.stillOpen} findings={comparison.diff.unchanged} tone="text-slate-400" Icon={ArrowRight} />
+          <div className="grid gap-6 sm:grid-cols-3">
+            <DiffList title={t.history.fixed} findings={comparison.diff.fixed} tone="text-tint" Icon={Minus} />
+            <DiffList title={t.history.introduced} findings={comparison.diff.introduced} tone="text-critical" Icon={Plus} />
+            <DiffList title={t.history.stillOpen} findings={comparison.diff.unchanged} tone="text-label-2" Icon={ArrowRight} />
           </div>
         </Card>
       )}

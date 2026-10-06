@@ -12,9 +12,16 @@ import {
 } from '../engine/jwt';
 import { useI18n } from '../i18n/I18nContext';
 
+// The three token parts keep their own colors (not severity colors). Each is at least 4.5:1 on its surface.
+const SEGMENT = {
+  header: 'text-[#b0175b] dark:text-[#ff85b8]',
+  payload: 'text-[#7a3db8] dark:text-[#d0a6ff]',
+  signature: 'text-[#00707a] dark:text-[#5fd4dc]',
+};
+
 function JsonBlock({ value, tone }: { value: Record<string, unknown>; tone: string }) {
   return (
-    <pre className={`overflow-x-auto rounded-lg border border-white/10 bg-slate-950/80 p-3 font-mono text-xs ${tone}`}>
+    <pre className={`overflow-x-auto rounded-[14px] border border-separator bg-code p-3.5 font-mono text-footnote ${tone}`}>
       {JSON.stringify(value, null, 2)}
     </pre>
   );
@@ -23,12 +30,12 @@ function JsonBlock({ value, tone }: { value: Record<string, unknown>; tone: stri
 function TokenSegments({ token }: { token: string }) {
   const [header, payload, signature] = token.trim().replace(/^Bearer\s+/i, '').split('.');
   return (
-    <p className="break-all font-mono text-xs leading-relaxed">
-      <span className="text-rose-300">{header}</span>
-      <span className="text-slate-500">.</span>
-      <span className="text-violet-300">{payload}</span>
-      <span className="text-slate-500">.</span>
-      <span className="text-cyan-300">{signature}</span>
+    <p className="break-all font-mono text-footnote leading-relaxed">
+      <span className={SEGMENT.header}>{header}</span>
+      <span className="text-label-2">.</span>
+      <span className={SEGMENT.payload}>{payload}</span>
+      <span className="text-label-2">.</span>
+      <span className={SEGMENT.signature}>{signature}</span>
     </p>
   );
 }
@@ -50,8 +57,8 @@ function SignatureTools({ decoded }: { decoded: DecodedJwt }) {
 
   if (!isHmac) {
     return (
-      <p className="text-sm text-slate-400">
-        {t.jwt.nonHmacBefore} <code className="text-slate-200">{alg}</code>
+      <p className="text-subhead text-label-2">
+        {t.jwt.nonHmacBefore} <code className="font-mono text-label">{alg}</code>
         {t.jwt.nonHmacAfter}
       </p>
     );
@@ -63,14 +70,16 @@ function SignatureTools({ decoded }: { decoded: DecodedJwt }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-slate-400">{t.jwt.signingIntro}</p>
+      <p className="text-subhead text-label-2">{t.jwt.signingIntro}</p>
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
           value={secret}
           onChange={(event) => setSecret(event.target.value)}
+          onKeyDown={(event) => event.key === 'Enter' && secret.length > 0 && verify()}
           placeholder={t.jwt.secretPlaceholder}
           aria-label={t.jwt.secretPlaceholder}
-          className="flex-1 rounded-lg border border-white/10 bg-slate-950/60 px-3 py-1.5 font-mono text-sm text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
+          autoComplete="off"
+          className="field h-11 flex-1 px-3 font-mono text-subhead lg:h-9"
         />
         <Button variant="primary" onClick={verify} disabled={secret.length === 0}>
           {t.jwt.verify}
@@ -79,17 +88,20 @@ function SignatureTools({ decoded }: { decoded: DecodedJwt }) {
 
       {verified !== null && (
         <div
-          className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
-            verified
-              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-              : 'border-slate-500/30 bg-slate-500/10 text-slate-300'
+          role="status"
+          className={`flex items-start gap-2 rounded-[14px] px-4 py-3 text-subhead ${
+            verified ? 'bg-tint-soft text-label' : 'bg-fill text-label'
           }`}
         >
-          {verified ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> : <XCircle className="mt-0.5 h-4 w-4 shrink-0" />}
+          {verified ? (
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-tint" aria-hidden="true" />
+          ) : (
+            <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-label-2" aria-hidden="true" />
+          )}
           <span>
             {verified ? t.jwt.valid : t.jwt.invalidSignature}
             {verified && isWeakSigningSecret(secret) && (
-              <strong className="mt-1 block text-red-300">{t.jwt.weakSecret}</strong>
+              <strong className="mt-1 block font-semibold text-critical">{t.jwt.weakSecret}</strong>
             )}
           </span>
         </div>
@@ -130,7 +142,7 @@ export function JwtPage() {
         actions={
           <>
             <Button onClick={loadSample}>
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
               {t.common.loadSample}
             </Button>
             {input && <Button onClick={() => setInput('')}>{t.common.clear}</Button>}
@@ -147,18 +159,18 @@ export function JwtPage() {
           rows={4}
           spellCheck={false}
           aria-label={t.jwt.tokenAria}
-          className="w-full resize-y rounded-lg border border-white/10 bg-slate-950/60 p-3 font-mono text-xs text-slate-200 focus:border-emerald-400/60 focus:outline-hidden"
+          className="field resize-y p-3 font-mono text-footnote"
         />
         {input.trim() && (
-          <div className="mt-3 rounded-lg border border-white/10 bg-slate-950/40 p-3">
+          <div className="mt-3 rounded-[14px] bg-code p-3.5">
             <TokenSegments token={input} />
           </div>
         )}
       </Card>
 
       {decoded?.error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-          <XCircle className="h-5 w-5 shrink-0" />
+        <div role="alert" className="card flex items-center gap-3 bg-critical-soft px-5 py-4 text-subhead font-medium text-critical">
+          <XCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
           {decoded.error}
         </div>
       )}
@@ -166,47 +178,47 @@ export function JwtPage() {
       {decoded?.token && (
         <>
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
+            <Card className="min-w-0">
               <CardTitle hint={t.jwt.headerHint}>{t.jwt.header}</CardTitle>
-              <JsonBlock value={decoded.token.header} tone="text-rose-200" />
+              <JsonBlock value={decoded.token.header} tone={SEGMENT.header} />
             </Card>
-            <Card>
+            <Card className="min-w-0">
               <CardTitle hint={t.jwt.payloadHint}>{t.jwt.payload}</CardTitle>
-              <JsonBlock value={decoded.token.payload} tone="text-violet-200" />
-              <div className="mt-3 space-y-1">
+              <JsonBlock value={decoded.token.payload} tone={SEGMENT.payload} />
+              <dl className="mt-3 space-y-1.5">
                 {Object.entries(t.jwt.timeClaims).map(([claim, label]) => {
                   const value = decoded.token?.payload[claim];
                   if (typeof value !== 'number') return null;
                   return (
-                    <p key={claim} className="flex justify-between text-xs text-slate-400">
-                      <span>{label}</span>
-                      <span className="font-mono text-slate-300">{new Date(value * 1000).toISOString()}</span>
-                    </p>
+                    <div key={claim} className="flex justify-between gap-3 text-footnote">
+                      <dt className="text-label-2">{label}</dt>
+                      <dd className="font-mono text-label">{new Date(value * 1000).toISOString()}</dd>
+                    </div>
                   );
                 })}
-              </div>
+              </dl>
             </Card>
           </div>
 
           <Card>
             <CardTitle hint={t.jwt.issues(issues.length)}>{t.jwt.audit}</CardTitle>
             {issues.length === 0 ? (
-              <p className="flex items-center gap-2 text-sm text-emerald-300">
-                <CheckCircle2 className="h-4 w-4" />
+              <p className="flex items-center gap-2 text-subhead font-medium text-tint">
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                 {t.jwt.noIssues}
               </p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="divide-y divide-separator overflow-hidden rounded-[14px] bg-fill">
                 {issues.map((issue) => (
-                  <li key={issue.id} className="rounded-lg border border-white/10 bg-slate-950/40 p-3">
+                  <li key={issue.id} className="p-3.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <SeverityBadge severity={issue.severity} />
-                      <span className="text-sm font-medium text-slate-100">{issue.title}</span>
+                      <span className="text-subhead font-semibold text-label">{issue.title}</span>
                       <span className="ml-auto flex gap-1">
                         <ReferenceBadges references={issue.references} />
                       </span>
                     </div>
-                    <p className="mt-2 text-sm text-slate-400">{issue.description}</p>
+                    <p className="mt-1.5 text-footnote text-label-2">{issue.description}</p>
                   </li>
                 ))}
               </ul>

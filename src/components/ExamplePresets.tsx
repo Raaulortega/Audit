@@ -1,5 +1,3 @@
-import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
 import { EXAMPLE_PRESETS, type PresetFile } from '../data/examplePresets';
 import { useI18n } from '../i18n/I18nContext';
 
@@ -10,24 +8,23 @@ interface ExamplePresetsProps {
 export function ExamplePresets({ onLoadPreset }: ExamplePresetsProps) {
   const { t } = useI18n();
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-        <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-        {t.emptyState.tryExample}
-      </div>
-      <div className="flex flex-wrap justify-center gap-2">
+    <div className="w-full max-w-3xl space-y-3">
+      <p className="text-footnote font-semibold text-label-2">{t.emptyState.tryExample}</p>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {EXAMPLE_PRESETS.map((preset) => (
-          <motion.button
+          <button
             key={preset.id}
             type="button"
             onClick={() => onLoadPreset(preset.files)}
-            whileHover={{ scale: 1.04, y: -2 }}
-            whileTap={{ scale: 0.97 }}
-            className="group rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-left backdrop-blur-xs transition-colors hover:border-emerald-400/40 hover:bg-emerald-400/10"
+            className="min-h-14 rounded-[14px] bg-fill px-4 py-2.5 text-left transition-colors hover:bg-fill-strong"
           >
-            <p className="text-sm font-semibold text-slate-100 group-hover:text-emerald-300">{t.emptyState.presets[preset.id]?.label ?? preset.label}</p>
-            <p className="text-xs text-slate-500">{t.emptyState.presets[preset.id]?.description ?? preset.description}</p>
-          </motion.button>
+            <span className="block truncate font-mono text-subhead font-semibold text-label">
+              {t.emptyState.presets[preset.id]?.label ?? preset.label}
+            </span>
+            <span className="block truncate text-footnote text-label-2">
+              {t.emptyState.presets[preset.id]?.description ?? preset.description}
+            </span>
+          </button>
         ))}
       </div>
     </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Cookie } from 'lucide-react';
 import { useI18n } from '../i18n/I18nContext';
+import { Button } from './PageHeader';
 
 const STORAGE_KEY = 'config-audit:cookie-consent';
 
@@ -36,28 +37,24 @@ export function CookieBanner({ onLearnMore }: CookieBannerProps) {
     <AnimatePresence>
       {!dismissed && (
         <motion.div
+          role="region"
+          aria-label={t.footer.cookies}
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 24 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-md flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900/95 p-4 shadow-[0_0_32px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:flex-row sm:items-center"
+          transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+          className="glass fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 mx-auto flex max-w-md flex-col gap-3 rounded-[22px] p-4 sm:flex-row sm:items-center lg:bottom-6 lg:left-[17.5rem]"
         >
-          <Cookie className="h-5 w-5 shrink-0 text-emerald-400" />
-          <p className="text-xs text-slate-400">
+          <Cookie className="h-5 w-5 shrink-0 text-label-2" aria-hidden="true" />
+          <p className="text-footnote text-label">
             {t.cookieBanner.text}{' '}
-            <button type="button" onClick={onLearnMore} className="font-medium text-emerald-400 hover:text-emerald-300">
+            <button type="button" onClick={onLearnMore} className="font-semibold text-tint hover:underline">
               {t.cookieBanner.learnMore}
             </button>
           </p>
-          <motion.button
-            type="button"
-            onClick={handleAccept}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.96 }}
-            className="shrink-0 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-slate-950 shadow-[0_0_14px_rgba(52,211,153,0.35)] transition-colors hover:bg-emerald-400"
-          >
+          <Button variant="primary" onClick={handleAccept}>
             {t.cookieBanner.accept}
-          </motion.button>
+          </Button>
         </motion.div>
       )}
     </AnimatePresence>
