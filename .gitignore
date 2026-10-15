@@ -3,3 +3,12 @@ dist
 *.local
 *.tsbuildinfo
 dist-ssr
+
+# Secrets / environment files
+.env
+.env.*
+!.env.example
+
+# Deployment / editor local state
+.vercel
+.claude/settings.local.json
